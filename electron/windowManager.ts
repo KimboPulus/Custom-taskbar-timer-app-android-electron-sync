@@ -10,6 +10,10 @@ import {
   shouldCloseToTaskbar,
 } from "../src/desktop/windowMode.js";
 import type { SettingsStore } from "./settingsStore.js";
+import {
+  detachFromWindowsTaskbar,
+  embedInWindowsTaskbar,
+} from "./taskbarHost.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -21,7 +25,7 @@ export class WindowManager {
   private mode: WindowMode = "full";
   private fullBounds: Electron.Rectangle | null = null;
   private savePositionTimer: NodeJS.Timeout | null = null;
-  private taskbarVisibilityTimer: NodeJS.Timeout | null = null;
+  private taskbarEmbedded = false;
   private quitting = false;
 
   constructor(private readonly settingsStore: SettingsStore) {}
@@ -41,7 +45,7 @@ export class WindowManager {
       transparent: false,
       backgroundColor: "#f5f7f7",
       alwaysOnTop: fixedSize,
-      skipTaskbar: false,
+      skipTaskbar: this.mode === "taskbar",
       resizable: !fixedSize,
       maximizable: !fixedSize,
       movable: this.mode !== "taskbar",
@@ -68,9 +72,6 @@ export class WindowManager {
 
     this.window.on("ready-to-show", () => void this.activateInitialMode());
     this.window.on("move", () => this.queueCompactPositionSave());
-    this.window.on("blur", () => this.reassertTaskbarVisibility());
-    this.window.on("minimize", () => this.reassertTaskbarVisibility());
-    this.window.on("hide", () => this.reassertTaskbarVisibility());
     this.window.on("close", (event) => {
       if (
         !this.quitting &&
@@ -81,7 +82,6 @@ export class WindowManager {
       }
     });
     this.window.on("closed", () => {
-      this.stopTaskbarVisibilityKeeper();
       screen.removeListener("display-metrics-changed", this.handleDisplayChange);
       this.window = null;
     });
@@ -122,6 +122,11 @@ export class WindowManager {
 
     if (nextMode === this.mode) {
       return this.mode;
+    }
+
+    if (this.mode === "taskbar" && this.taskbarEmbedded) {
+      await detachFromWindowsTaskbar(this.window);
+      this.taskbarEmbedded = false;
     }
 
     if (this.mode === "full") {
@@ -168,13 +173,17 @@ export class WindowManager {
 
   async quit(): Promise<void> {
     this.quitting = true;
-    this.stopTaskbarVisibilityKeeper();
+
+    if (this.window && this.taskbarEmbedded) {
+      await detachFromWindowsTaskbar(this.window);
+      this.taskbarEmbedded = false;
+    }
+
     app.quit();
   }
 
   prepareToQuit(): void {
     this.quitting = true;
-    this.stopTaskbarVisibilityKeeper();
   }
 
   private readonly handleDisplayChange = () => {
@@ -203,7 +212,6 @@ export class WindowManager {
     this.window.setMinimumSize(1, 1);
 
     if (this.mode === "full") {
-      this.stopTaskbarVisibilityKeeper();
       this.window.setAlwaysOnTop(false);
       this.window.setVisibleOnAllWorkspaces(false);
       this.window.setSkipTaskbar(false);
@@ -225,7 +233,6 @@ export class WindowManager {
     this.window.setAlwaysOnTop(true, "screen-saver", 1);
 
     if (this.mode === "compact") {
-      this.stopTaskbarVisibilityKeeper();
       this.window.setVisibleOnAllWorkspaces(false);
       this.window.setSkipTaskbar(false);
       this.window.setMovable(true);
@@ -238,7 +245,7 @@ export class WindowManager {
     }
 
     const taskbarBounds = this.getTaskbarOverlayBounds();
-    this.window.setSkipTaskbar(false);
+    this.window.setSkipTaskbar(true);
     this.window.setMovable(false);
     this.window.setVisibleOnAllWorkspaces(true, {
       visibleOnFullScreen: false,
@@ -246,9 +253,8 @@ export class WindowManager {
     this.window.setMinimumSize(taskbarBounds.width, taskbarBounds.height);
     this.window.setBounds(taskbarBounds);
     this.window.showInactive();
-    this.window.moveTop();
-    this.startTaskbarVisibilityKeeper();
-    return true;
+    this.taskbarEmbedded = await this.embedTaskbarWindow(taskbarBounds);
+    return this.taskbarEmbedded;
   }
 
   private getBoundsForMode(mode: WindowMode): Electron.Rectangle {
@@ -318,50 +324,31 @@ export class WindowManager {
       return;
     }
 
+    if (this.taskbarEmbedded) {
+      await detachFromWindowsTaskbar(this.window);
+      this.taskbarEmbedded = false;
+    }
+
     const taskbarBounds = this.getTaskbarOverlayBounds();
     this.window.setBounds(taskbarBounds);
-    this.window.showInactive();
-    this.window.moveTop();
+    this.taskbarEmbedded = await this.embedTaskbarWindow(taskbarBounds);
   }
 
-  private startTaskbarVisibilityKeeper(): void {
-    this.stopTaskbarVisibilityKeeper();
-    this.taskbarVisibilityTimer = setInterval(
-      () => this.maintainTaskbarVisibility(),
-      1_000,
+  private embedTaskbarWindow(
+    taskbarBounds: Electron.Rectangle,
+  ): Promise<boolean> {
+    if (!this.window) {
+      return Promise.resolve(false);
+    }
+
+    const display = screen.getPrimaryDisplay();
+    const scaleFactor = display.scaleFactor;
+    return embedInWindowsTaskbar(
+      this.window,
+      Math.round((taskbarBounds.x - display.bounds.x) * scaleFactor),
+      Math.round(taskbarBounds.width * scaleFactor),
+      Math.round(taskbarBounds.height * scaleFactor),
     );
-    this.taskbarVisibilityTimer.unref();
-  }
-
-  private stopTaskbarVisibilityKeeper(): void {
-    if (this.taskbarVisibilityTimer) {
-      clearInterval(this.taskbarVisibilityTimer);
-      this.taskbarVisibilityTimer = null;
-    }
-  }
-
-  private reassertTaskbarVisibility(): void {
-    if (this.mode !== "taskbar") {
-      return;
-    }
-
-    setTimeout(() => this.maintainTaskbarVisibility(), 50).unref();
-  }
-
-  private maintainTaskbarVisibility(): void {
-    if (!this.window || this.mode !== "taskbar" || this.quitting) {
-      return;
-    }
-
-    if (this.window.isMinimized()) {
-      this.window.restore();
-    }
-    if (!this.window.isVisible()) {
-      this.window.showInactive();
-    }
-
-    this.window.setAlwaysOnTop(true, "screen-saver", 1);
-    this.window.moveTop();
   }
 
   private queueCompactPositionSave(): void {
