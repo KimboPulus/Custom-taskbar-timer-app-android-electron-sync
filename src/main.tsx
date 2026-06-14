@@ -5,6 +5,7 @@ import "./styles/global.css";
 import "./styles/full.css";
 import "./styles/dailyPlan.css";
 import "./styles/compact.css";
+import "./styles/taskbar.css";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

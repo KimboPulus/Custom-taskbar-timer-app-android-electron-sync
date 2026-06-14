@@ -379,6 +379,10 @@
   border-block: 1px solid var(--line);
 }
 
+.setting-row--taskbar {
+  margin-top: 24px;
+}
+
 .setting-row strong {
   font-size: 14px;
 }

@@ -5,12 +5,13 @@ import type {
   ElectronAPI,
   PersistedTimerState,
   ShortcutAction,
+  WindowMode,
 } from "../src/desktop/desktopTypes.js";
 
 const electronAPI: ElectronAPI = {
-  enterCompactMode: () => ipcRenderer.invoke("window:enter-compact"),
-  exitCompactMode: () => ipcRenderer.invoke("window:exit-compact"),
-  toggleCompactMode: () => ipcRenderer.invoke("window:toggle-compact"),
+  setWindowMode: (mode: WindowMode) =>
+    ipcRenderer.invoke("window:set-mode", mode),
+  cycleWindowMode: () => ipcRenderer.invoke("window:cycle-mode"),
   minimizeWindow: () => ipcRenderer.send("window:minimize"),
   closeWindow: () => ipcRenderer.send("window:close"),
   onShortcutAction: (callback) => {

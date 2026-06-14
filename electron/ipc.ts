@@ -2,6 +2,7 @@ import { ipcMain, Notification } from "electron";
 import type {
   AppSettings,
   PersistedTimerState,
+  WindowMode,
 } from "../src/desktop/desktopTypes.js";
 import {
   chooseCustomMedia,
@@ -17,9 +18,10 @@ export function registerIpcHandlers(
   settingsStore: SettingsStore,
   shortcutManager: ShortcutManager,
 ): void {
-  ipcMain.handle("window:enter-compact", () => windowManager.enterCompactMode());
-  ipcMain.handle("window:exit-compact", () => windowManager.exitCompactMode());
-  ipcMain.handle("window:toggle-compact", () => windowManager.toggleCompactMode());
+  ipcMain.handle("window:set-mode", (_event, mode: WindowMode) =>
+    windowManager.setMode(mode),
+  );
+  ipcMain.handle("window:cycle-mode", () => windowManager.cycleMode());
   ipcMain.on("window:minimize", () => windowManager.minimize());
   ipcMain.on("window:close", () => windowManager.close());
 

@@ -1,4 +1,5 @@
 export type ThemePreference = "light" | "dark" | "system";
+export type WindowMode = "full" | "compact" | "taskbar";
 
 export type ShortcutAction =
   | "toggle-play-pause"
@@ -61,7 +62,8 @@ export type AppSettings = {
   selectedDurationMs: number;
   timerState: PersistedTimerState;
   focusPresets: number[];
-  compactMode: boolean;
+  windowMode: WindowMode;
+  taskbarModeEnabled: boolean;
   compactPosition: CompactPosition | null;
   soundEnabled: boolean;
   alarmSound: AlarmSound;
@@ -72,9 +74,8 @@ export type AppSettings = {
 };
 
 export type ElectronAPI = {
-  enterCompactMode: () => Promise<void>;
-  exitCompactMode: () => Promise<void>;
-  toggleCompactMode: () => Promise<void>;
+  setWindowMode: (mode: WindowMode) => Promise<WindowMode>;
+  cycleWindowMode: () => Promise<WindowMode>;
   minimizeWindow: () => void;
   closeWindow: () => void;
   onShortcutAction: (callback: (action: ShortcutAction) => void) => () => void;

@@ -21,7 +21,7 @@ const shortcutFields: Array<{
   label: string;
 }> = [
   { key: "togglePlayPause", label: "Play / pause" },
-  { key: "toggleCompact", label: "Toggle compact" },
+  { key: "toggleCompact", label: "Cycle window mode" },
   { key: "reset", label: "Reset" },
   { key: "addMinute", label: "Add one minute" },
   { key: "subtractMinute", label: "Subtract one minute" },
@@ -260,6 +260,26 @@ export function SettingsPanel({
             <option value="light">Light</option>
             <option value="dark">Dark</option>
           </select>
+        </div>
+
+        <div className="setting-row setting-row--taskbar">
+          <div>
+            <strong>Taskbar timer mode</strong>
+            <p>
+              Include the taskbar overlay in the Ctrl+Alt+T mode cycle.
+            </p>
+          </div>
+          <label className="switch">
+            <input
+              type="checkbox"
+              aria-label="Enable taskbar timer mode"
+              checked={settings.taskbarModeEnabled}
+              onChange={(event) =>
+                void onSave({ taskbarModeEnabled: event.target.checked })
+              }
+            />
+            <span />
+          </label>
         </div>
 
         <div className="setting-block">

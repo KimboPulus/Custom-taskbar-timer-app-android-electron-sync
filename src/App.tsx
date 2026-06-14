@@ -3,12 +3,14 @@ import { CompactTimer } from "./components/CompactTimer";
 import { DailyPlanPanel } from "./components/DailyPlanPanel";
 import { FullTimer } from "./components/FullTimer";
 import { SettingsPanel } from "./components/SettingsPanel";
+import { TaskbarTimer } from "./components/TaskbarTimer";
 import { WindowChrome } from "./components/WindowChrome";
 import { playAlarm } from "./desktop/alarmPlayer";
 import { electronApi } from "./desktop/electronApi";
 import type {
   AppSettings,
   ShortcutAction,
+  WindowMode,
 } from "./desktop/desktopTypes";
 import { useTimerStore } from "./timer/timerStore";
 
@@ -27,7 +29,8 @@ const fallbackSettings: AppSettings = {
     50 * 60 * 1000,
     2 * 60 * 60 * 1000,
   ],
-  compactMode: false,
+  windowMode: "full",
+  taskbarModeEnabled: true,
   compactPosition: null,
   soundEnabled: true,
   alarmSound: {
@@ -58,7 +61,7 @@ export default function App() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [dailyPlanOpen, setDailyPlanOpen] = useState(false);
   const [shortcutWarnings, setShortcutWarnings] = useState<string[]>([]);
-  const [compactMode, setCompactMode] = useState(false);
+  const [windowMode, setWindowMode] = useState<WindowMode>("full");
   const timer = useTimerStore(fallbackSettings.selectedDurationMs);
   const previousStatus = useRef(timer.state.status);
 
@@ -74,7 +77,7 @@ export default function App() {
       electronApi.getShortcutWarnings(),
     ]).then(([loaded, warnings]) => {
       setSettings(loaded);
-      setCompactMode(loaded.compactMode);
+      setWindowMode(loaded.windowMode);
       previousStatus.current = loaded.timerState.status;
       timer.restore(loaded.timerState);
       setShortcutWarnings(warnings);
@@ -110,24 +113,21 @@ export default function App() {
     timer.state.status,
   ]);
 
-  const enterCompact = useCallback(async () => {
-    await electronApi.enterCompactMode();
-    setCompactMode(true);
-    setSettings((current) => ({ ...current, compactMode: true }));
-  }, []);
-
-  const exitCompact = useCallback(async () => {
-    await electronApi.exitCompactMode();
-    setCompactMode(false);
-    setSettings((current) => ({ ...current, compactMode: false }));
-  }, []);
-
-  const toggleCompact = useCallback(async () => {
-    await electronApi.toggleCompactMode();
-    setCompactMode((current) => !current);
+  const applyWindowMode = useCallback(async (mode: WindowMode) => {
+    const appliedMode = await electronApi.setWindowMode(mode);
+    setWindowMode(appliedMode);
     setSettings((current) => ({
       ...current,
-      compactMode: !current.compactMode,
+      windowMode: appliedMode,
+    }));
+  }, []);
+
+  const cycleWindowMode = useCallback(async () => {
+    const appliedMode = await electronApi.cycleWindowMode();
+    setWindowMode(appliedMode);
+    setSettings((current) => ({
+      ...current,
+      windowMode: appliedMode,
     }));
   }, []);
 
@@ -138,7 +138,7 @@ export default function App() {
           timer.toggle();
           break;
         case "toggle-compact":
-          void toggleCompact();
+          void cycleWindowMode();
           break;
         case "reset":
           timer.reset();
@@ -153,7 +153,7 @@ export default function App() {
     };
 
     return electronApi.onShortcutAction(handleShortcut);
-  }, [timer.toggle, timer.reset, timer.changeTime, toggleCompact]);
+  }, [timer.toggle, timer.reset, timer.changeTime, cycleWindowMode]);
 
   const selectDuration = useCallback(
     (durationMs: number) => {
@@ -189,16 +189,33 @@ export default function App() {
     return <div className="app-loading">Loading timer...</div>;
   }
 
+  const compactMode = windowMode === "compact";
+  const taskbarMode = windowMode === "taskbar";
+
   return (
-    <div className={`app-shell ${compactMode ? "app-shell--compact" : ""}`}>
-      <WindowChrome compact={compactMode} />
-      {compactMode ? (
+    <div
+      className={`app-shell ${
+        compactMode
+          ? "app-shell--compact"
+          : taskbarMode
+            ? "app-shell--taskbar"
+            : ""
+      }`}
+    >
+      {!taskbarMode && <WindowChrome compact={compactMode} />}
+      {taskbarMode ? (
+        <TaskbarTimer
+          timer={timer.state}
+          onToggle={timer.toggle}
+          onExitToFull={() => void applyWindowMode("full")}
+        />
+      ) : compactMode ? (
         <CompactTimer
           timer={timer.state}
           onToggle={timer.toggle}
           onReset={timer.reset}
           onSetDuration={selectDuration}
-          onExitCompact={exitCompact}
+          onExitCompact={() => void applyWindowMode("full")}
         />
       ) : (
         <FullTimer
@@ -209,7 +226,7 @@ export default function App() {
           onDurationChange={selectDuration}
           onAddCustomPreset={addCustomPreset}
           onDeletePreset={deletePreset}
-          onEnterCompact={enterCompact}
+          onEnterCompact={() => void applyWindowMode("compact")}
           onOpenSettings={() => {
             setDailyPlanOpen(false);
             setSettingsOpen(true);
@@ -220,7 +237,7 @@ export default function App() {
           }}
         />
       )}
-      {settingsOpen && !compactMode && (
+      {settingsOpen && windowMode === "full" && (
         <SettingsPanel
           settings={settings}
           shortcutWarnings={shortcutWarnings}
@@ -228,7 +245,7 @@ export default function App() {
           onSave={saveSettings}
         />
       )}
-      {dailyPlanOpen && !compactMode && (
+      {dailyPlanOpen && windowMode === "full" && (
         <DailyPlanPanel
           plan={settings.dailyPlan}
           onClose={() => setDailyPlanOpen(false)}

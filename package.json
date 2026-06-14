@@ -1,6 +1,6 @@
 {
   "name": "focus-timer",
-  "version": "1.3.1",
+  "version": "1.4.0",
   "description": "A polished local desktop timer for Windows.",
   "main": "dist-electron/electron/main.js",
   "author": "Max",
@@ -8,7 +8,8 @@
   "type": "module",
   "scripts": {
     "dev": "concurrently -k \"vite\" \"tsc -p tsconfig.electron.json --watch --preserveWatchOutput\" \"wait-on tcp:5173 file:dist-electron/electron/main.js && cross-env VITE_DEV_SERVER_URL=http://localhost:5173 electron .\"",
-    "build": "npm run typecheck && npm run test && npm run build:renderer && npm run build:electron",
+    "build": "npm run build:taskbar-helper && npm run typecheck && npm run test && npm run build:renderer && npm run build:electron",
+    "build:taskbar-helper": "node tools/build-taskbar-helper.mjs",
     "build:renderer": "vite build",
     "build:electron": "node -e \"require('fs').rmSync('dist-electron',{recursive:true,force:true})\" && tsc -p tsconfig.electron.json",
     "typecheck": "tsc --noEmit",
@@ -49,6 +50,12 @@
       "dist/**/*",
       "dist-electron/**/*",
       "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "native/bin/FocusTimerTaskbarHost.exe",
+        "to": "taskbar-host/FocusTimerTaskbarHost.exe"
+      }
     ],
     "win": {
       "target": [

@@ -1,4 +1,5 @@
 import type { AppSettings, ElectronAPI } from "./desktopTypes";
+import { getNextWindowMode } from "./windowMode";
 
 const browserSettings: AppSettings = {
   selectedDurationMs: 25 * 60 * 1000,
@@ -15,7 +16,8 @@ const browserSettings: AppSettings = {
     50 * 60 * 1000,
     2 * 60 * 60 * 1000,
   ],
-  compactMode: false,
+  windowMode: "full",
+  taskbarModeEnabled: true,
   compactPosition: null,
   soundEnabled: true,
   alarmSound: {
@@ -41,15 +43,29 @@ const browserSettings: AppSettings = {
 };
 
 const browserFallback: ElectronAPI = {
-  enterCompactMode: async () => undefined,
-  exitCompactMode: async () => undefined,
-  toggleCompactMode: async () => undefined,
+  setWindowMode: async (mode) => {
+    browserSettings.windowMode = mode;
+    return mode;
+  },
+  cycleWindowMode: async () => {
+    browserSettings.windowMode = getNextWindowMode(
+      browserSettings.windowMode,
+      browserSettings.taskbarModeEnabled,
+    );
+    return browserSettings.windowMode;
+  },
   minimizeWindow: () => undefined,
   closeWindow: () => undefined,
   onShortcutAction: () => () => undefined,
   loadSettings: async () => structuredClone(browserSettings),
   saveSettings: async (patch) => {
     Object.assign(browserSettings, patch);
+    if (
+      !browserSettings.taskbarModeEnabled &&
+      browserSettings.windowMode === "taskbar"
+    ) {
+      browserSettings.windowMode = "full";
+    }
     return structuredClone(browserSettings);
   },
   saveTimerState: (state) => {

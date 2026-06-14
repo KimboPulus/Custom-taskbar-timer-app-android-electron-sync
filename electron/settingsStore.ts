@@ -10,6 +10,7 @@ import type {
   AppSettings,
   DailyPlanSettings,
   PersistedTimerState,
+  WindowMode,
 } from "../src/desktop/desktopTypes.js";
 
 export const defaultSettings: AppSettings = {
@@ -27,7 +28,8 @@ export const defaultSettings: AppSettings = {
     50 * 60 * 1000,
     2 * 60 * 60 * 1000,
   ],
-  compactMode: false,
+  windowMode: "full",
+  taskbarModeEnabled: true,
   compactPosition: null,
   soundEnabled: true,
   alarmSound: {
@@ -54,6 +56,7 @@ export const defaultSettings: AppSettings = {
 
 type LegacySettings = Partial<AppSettings> & {
   customPresets?: number[];
+  compactMode?: boolean;
 };
 
 function normalizePresets(values: unknown): number[] {
@@ -87,6 +90,20 @@ function isAlarmSound(value: unknown): value is AlarmSound {
       typeof sound.source === "string" &&
       typeof sound.label === "string")
   );
+}
+
+function normalizeWindowMode(
+  value: unknown,
+  legacyCompactMode: unknown,
+  taskbarModeEnabled: boolean,
+): WindowMode {
+  if (value === "taskbar") {
+    return taskbarModeEnabled ? "taskbar" : "full";
+  }
+  if (value === "compact" || value === "full") {
+    return value;
+  }
+  return legacyCompactMode === true ? "compact" : "full";
 }
 
 function isDateKey(value: unknown): value is string {
@@ -196,7 +213,7 @@ export class SettingsStore {
     try {
       const raw = await fs.readFile(this.filePath, "utf8");
       const stored = JSON.parse(raw) as LegacySettings;
-      const { customPresets, ...storedSettings } = stored;
+      const { compactMode, customPresets, ...storedSettings } = stored;
       const migratedPresets =
         stored.focusPresets === undefined
           ? normalizePresets([
@@ -209,10 +226,20 @@ export class SettingsStore {
         (stored.selectedDurationMs as number) > 0
           ? Math.round(stored.selectedDurationMs as number)
           : defaultSettings.selectedDurationMs;
+      const taskbarModeEnabled =
+        typeof stored.taskbarModeEnabled === "boolean"
+          ? stored.taskbarModeEnabled
+          : defaultSettings.taskbarModeEnabled;
       this.settings = {
         ...defaultSettings,
         ...storedSettings,
         selectedDurationMs,
+        windowMode: normalizeWindowMode(
+          stored.windowMode,
+          compactMode,
+          taskbarModeEnabled,
+        ),
+        taskbarModeEnabled,
         timerState: normalizeTimerState(
           stored.timerState,
           selectedDurationMs,
@@ -245,6 +272,14 @@ export class SettingsStore {
   }
 
   async update(patch: Partial<AppSettings>): Promise<AppSettings> {
+    const taskbarModeEnabled =
+      patch.taskbarModeEnabled ?? this.settings.taskbarModeEnabled;
+    const windowMode = normalizeWindowMode(
+      patch.windowMode ?? this.settings.windowMode,
+      false,
+      taskbarModeEnabled,
+    );
+
     this.settings = {
       ...this.settings,
       ...patch,
@@ -265,6 +300,8 @@ export class SettingsStore {
         patch.dailyPlan === undefined
           ? this.settings.dailyPlan
           : normalizeDailyPlan(patch.dailyPlan),
+      windowMode,
+      taskbarModeEnabled,
     };
 
     await this.persist();

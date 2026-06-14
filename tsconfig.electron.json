@@ -11,5 +11,5 @@
     "types": ["node"],
     "sourceMap": true
   },
-  "include": ["electron/**/*", "src/desktop/desktopTypes.ts"]
+  "include": ["electron/**/*", "src/desktop/desktopTypes.ts", "src/desktop/windowMode.ts"]
 }
