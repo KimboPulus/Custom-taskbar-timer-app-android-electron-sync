@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   formatDailyTarget,
+  getCurrentDailyPlanStreak,
   getDailyPlanDayStatus,
   getDailyPlanYearStats,
   getLocalDateKey,
 } from "../dailyPlan/dailyPlan";
 import type { DailyPlanSettings } from "../desktop/desktopTypes";
+import { FlameIcon } from "./icons";
 
 type DailyPlanPanelProps = {
   plan: DailyPlanSettings;
@@ -71,6 +73,7 @@ export function DailyPlanPanel({
 
   const configured = plan.startDate !== null;
   const todayStatus = getDailyPlanDayStatus(todayKey, plan, todayKey);
+  const currentStreak = getCurrentDailyPlanStreak(plan, todayKey);
   const yearStats = useMemo(
     () => getDailyPlanYearStats(year, plan, todayKey),
     [plan, todayKey, year],
@@ -199,9 +202,22 @@ export function DailyPlanPanel({
             className={`daily-plan-today daily-plan-today--${todayStatus}`}
             aria-labelledby="today-plan-title"
           >
-            <span className="daily-plan-kicker">
-              {fullDateFormatter.format(today)}
-            </span>
+            <div className="daily-plan-today__heading">
+              <span className="daily-plan-kicker">
+                {fullDateFormatter.format(today)}
+              </span>
+              <div
+                className={`daily-plan-streak ${
+                  currentStreak > 0 ? "daily-plan-streak--active" : ""
+                }`}
+                aria-label={`${currentStreak} day streak`}
+                title={`${currentStreak} day streak`}
+              >
+                <FlameIcon />
+                <strong>{currentStreak}</strong>
+                <span>{currentStreak === 1 ? "day" : "days"}</span>
+              </div>
+            </div>
             <h3 id="today-plan-title">
               {configured ? plan.title : "No plan set yet"}
             </h3>

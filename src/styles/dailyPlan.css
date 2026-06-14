@@ -148,6 +148,47 @@
   border-color: color-mix(in srgb, var(--teal) 55%, var(--line));
 }
 
+.daily-plan-today__heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.daily-plan-streak {
+  display: inline-flex;
+  height: 30px;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 4px;
+  padding: 0 9px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--muted);
+  background: color-mix(in srgb, var(--surface) 74%, var(--surface-soft));
+  font-size: 9px;
+}
+
+.daily-plan-streak svg {
+  color: #aa6a3a;
+}
+
+.daily-plan-streak strong {
+  color: var(--text);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+.daily-plan-streak--active {
+  border-color: color-mix(in srgb, #e2863d 42%, var(--line));
+  color: #9b5b28;
+  background: color-mix(in srgb, #f5a85f 15%, var(--surface));
+}
+
+.daily-plan-streak--active svg {
+  color: #e06f2c;
+}
+
 .daily-plan-today__status {
   display: flex;
   align-items: center;

@@ -65,6 +65,33 @@ export function getDailyPlanYearStats(
   return stats;
 }
 
+function getPreviousDateKey(dateKey: string): string {
+  const [year, month, day] = dateKey.split("-").map(Number);
+  return getLocalDateKey(new Date(year, month - 1, day - 1));
+}
+
+export function getCurrentDailyPlanStreak(
+  plan: DailyPlanSettings,
+  todayKey = getLocalDateKey(),
+): number {
+  if (!plan.startDate) {
+    return 0;
+  }
+
+  const completedDates = new Set(plan.completedDates);
+  let cursor = completedDates.has(todayKey)
+    ? todayKey
+    : getPreviousDateKey(todayKey);
+  let streak = 0;
+
+  while (cursor >= plan.startDate && completedDates.has(cursor)) {
+    streak += 1;
+    cursor = getPreviousDateKey(cursor);
+  }
+
+  return streak;
+}
+
 export function formatDailyTarget(targetMinutes: number): string {
   const hours = Math.floor(targetMinutes / 60);
   const minutes = targetMinutes % 60;

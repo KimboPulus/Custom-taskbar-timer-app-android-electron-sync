@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { DailyPlanSettings } from "../desktop/desktopTypes";
 import {
   formatDailyTarget,
+  getCurrentDailyPlanStreak,
   getDailyPlanDayStatus,
   getDailyPlanYearStats,
   getLocalDateKey,
@@ -42,6 +43,40 @@ describe("daily plan", () => {
       completed: 3,
       failed: 2,
     });
+  });
+
+  it("counts a streak through today when today is complete", () => {
+    const streakPlan: DailyPlanSettings = {
+      ...plan,
+      startDate: "2026-06-10",
+      completedDates: [
+        "2026-06-10",
+        "2026-06-11",
+        "2026-06-12",
+        "2026-06-13",
+        "2026-06-14",
+      ],
+    };
+
+    expect(getCurrentDailyPlanStreak(streakPlan, "2026-06-14")).toBe(5);
+  });
+
+  it("keeps yesterday's streak active until today is completed", () => {
+    const streakPlan: DailyPlanSettings = {
+      ...plan,
+      completedDates: ["2026-06-11", "2026-06-12", "2026-06-13"],
+    };
+
+    expect(getCurrentDailyPlanStreak(streakPlan, "2026-06-14")).toBe(3);
+  });
+
+  it("resets the streak after a missed past day", () => {
+    const streakPlan: DailyPlanSettings = {
+      ...plan,
+      completedDates: ["2026-06-10", "2026-06-11"],
+    };
+
+    expect(getCurrentDailyPlanStreak(streakPlan, "2026-06-14")).toBe(0);
   });
 
   it("formats decimal-hour targets in plain language", () => {

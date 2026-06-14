@@ -72,3 +72,14 @@ export function CalendarIcon({ size = 18 }: IconProps) {
     </svg>
   );
 }
+
+export function FlameIcon({ size = 18 }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} aria-hidden="true">
+      <path
+        d="M13.5 2.4c.6 3.2-.5 4.7-1.8 6.1-1.1 1.2-2.3 2.4-2.3 4.5 0 1.1.4 2.1 1.1 2.8-.1-1.8.8-3 2.1-4.2.2 2.1 2 3.2 2 5.2 0 1.6-1.1 2.8-2.6 2.8-3.3 0-6-2.7-6-6 0-4.6 3.6-6.6 7.5-11.2zm2.4 5.7c1.3 1.5 2.1 3.1 2.1 5.1 0 2.1-.8 4-2.3 5.4 1.5-.9 2.6-2.7 2.6-4.7 0-2.4-1-4.1-2.4-5.8z"
+        fill="currentColor"
+      />
+    </svg>
+  );
+}
