@@ -12,8 +12,16 @@ const electronAPI: ElectronAPI = {
   setWindowMode: (mode: WindowMode) =>
     ipcRenderer.invoke("window:set-mode", mode),
   cycleWindowMode: () => ipcRenderer.invoke("window:cycle-mode"),
+  onWindowModeChanged: (callback) => {
+    const listener = (_event: Electron.IpcRendererEvent, mode: WindowMode) => {
+      callback(mode);
+    };
+    ipcRenderer.on("window:mode-changed", listener);
+    return () => ipcRenderer.removeListener("window:mode-changed", listener);
+  },
   minimizeWindow: () => ipcRenderer.send("window:minimize"),
   closeWindow: () => ipcRenderer.send("window:close"),
+  openTaskbarMenu: () => ipcRenderer.send("taskbar:open-menu"),
   onShortcutAction: (callback) => {
     const listener = (_event: Electron.IpcRendererEvent, action: ShortcutAction) => {
       callback(action);

@@ -1,4 +1,5 @@
 import { formatTime } from "../timer/formatTime";
+import { electronApi } from "../desktop/electronApi";
 import type { TimerState } from "../timer/timerTypes";
 import { ExpandIcon, PauseIcon, PlayIcon } from "./icons";
 
@@ -20,7 +21,14 @@ export function TaskbarTimer({
       : 0;
 
   return (
-    <main className="taskbar-layout">
+    <main
+      className="taskbar-layout"
+      onContextMenu={(event) => {
+        event.preventDefault();
+        electronApi.openTaskbarMenu();
+      }}
+      title="Right-click for app options"
+    >
       <span
         className={`taskbar-status taskbar-status--${timer.status}`}
         title={timer.status}

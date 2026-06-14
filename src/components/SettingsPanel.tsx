@@ -266,7 +266,8 @@ export function SettingsPanel({
           <div>
             <strong>Taskbar timer mode</strong>
             <p>
-              Include the taskbar overlay in the Ctrl+Alt+T mode cycle.
+              Include it in the Ctrl+Alt+T cycle and keep it there when the
+              main window is closed. Right-click the taskbar timer to quit.
             </p>
           </div>
           <label className="switch">

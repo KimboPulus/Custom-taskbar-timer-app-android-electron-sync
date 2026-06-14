@@ -54,8 +54,10 @@ const browserFallback: ElectronAPI = {
     );
     return browserSettings.windowMode;
   },
+  onWindowModeChanged: () => () => undefined,
   minimizeWindow: () => undefined,
   closeWindow: () => undefined,
+  openTaskbarMenu: () => undefined,
   onShortcutAction: () => () => undefined,
   loadSettings: async () => structuredClone(browserSettings),
   saveSettings: async (patch) => {

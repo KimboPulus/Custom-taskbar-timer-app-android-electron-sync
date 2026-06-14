@@ -1,16 +1,15 @@
-import { BrowserWindow, screen } from "electron";
+import { app, BrowserWindow, screen } from "electron";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import type {
   CompactPosition,
   WindowMode,
 } from "../src/desktop/desktopTypes.js";
-import { getNextWindowMode } from "../src/desktop/windowMode.js";
-import type { SettingsStore } from "./settingsStore.js";
 import {
-  detachFromWindowsTaskbar,
-  embedInWindowsTaskbar,
-} from "./taskbarHost.js";
+  getNextWindowMode,
+  shouldCloseToTaskbar,
+} from "../src/desktop/windowMode.js";
+import type { SettingsStore } from "./settingsStore.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -22,7 +21,7 @@ export class WindowManager {
   private mode: WindowMode = "full";
   private fullBounds: Electron.Rectangle | null = null;
   private savePositionTimer: NodeJS.Timeout | null = null;
-  private taskbarEmbedded = false;
+  private quitting = false;
 
   constructor(private readonly settingsStore: SettingsStore) {}
 
@@ -41,7 +40,7 @@ export class WindowManager {
       transparent: false,
       backgroundColor: "#f5f7f7",
       alwaysOnTop: fixedSize,
-      skipTaskbar: this.mode === "taskbar",
+      skipTaskbar: false,
       resizable: !fixedSize,
       maximizable: !fixedSize,
       movable: this.mode !== "taskbar",
@@ -68,6 +67,15 @@ export class WindowManager {
 
     this.window.on("ready-to-show", () => void this.activateInitialMode());
     this.window.on("move", () => this.queueCompactPositionSave());
+    this.window.on("close", (event) => {
+      if (
+        !this.quitting &&
+        shouldCloseToTaskbar(this.settingsStore.get().taskbarModeEnabled)
+      ) {
+        event.preventDefault();
+        void this.setMode("taskbar");
+      }
+    });
     this.window.on("closed", () => {
       screen.removeListener("display-metrics-changed", this.handleDisplayChange);
       this.window = null;
@@ -111,11 +119,6 @@ export class WindowManager {
       return this.mode;
     }
 
-    if (this.mode === "taskbar" && this.taskbarEmbedded) {
-      await detachFromWindowsTaskbar(this.window);
-      this.taskbarEmbedded = false;
-    }
-
     if (this.mode === "full") {
       this.fullBounds = this.window.getBounds();
     } else if (this.mode === "compact") {
@@ -132,6 +135,7 @@ export class WindowManager {
     if (this.mode !== nextMode) {
       await this.settingsStore.update({ windowMode: this.mode });
     }
+    this.window.webContents.send("window:mode-changed", this.mode);
     return this.mode;
   }
 
@@ -147,7 +151,23 @@ export class WindowManager {
   }
 
   close(): void {
+    if (
+      shouldCloseToTaskbar(this.settingsStore.get().taskbarModeEnabled)
+    ) {
+      void this.setMode("taskbar");
+      return;
+    }
+
     this.window?.close();
+  }
+
+  async quit(): Promise<void> {
+    this.quitting = true;
+    app.quit();
+  }
+
+  prepareToQuit(): void {
+    this.quitting = true;
   }
 
   private readonly handleDisplayChange = () => {
@@ -209,7 +229,7 @@ export class WindowManager {
     }
 
     const taskbarBounds = this.getTaskbarOverlayBounds();
-    this.window.setSkipTaskbar(true);
+    this.window.setSkipTaskbar(false);
     this.window.setMovable(false);
     this.window.setVisibleOnAllWorkspaces(true, {
       visibleOnFullScreen: false,
@@ -217,8 +237,8 @@ export class WindowManager {
     this.window.setMinimumSize(taskbarBounds.width, taskbarBounds.height);
     this.window.setBounds(taskbarBounds);
     this.window.showInactive();
-    this.taskbarEmbedded = await this.embedTaskbarWindow(taskbarBounds);
-    return this.taskbarEmbedded;
+    this.window.moveTop();
+    return true;
   }
 
   private getBoundsForMode(mode: WindowMode): Electron.Rectangle {
@@ -288,31 +308,10 @@ export class WindowManager {
       return;
     }
 
-    if (this.taskbarEmbedded) {
-      await detachFromWindowsTaskbar(this.window);
-      this.taskbarEmbedded = false;
-    }
-
     const taskbarBounds = this.getTaskbarOverlayBounds();
     this.window.setBounds(taskbarBounds);
-    this.taskbarEmbedded = await this.embedTaskbarWindow(taskbarBounds);
-  }
-
-  private embedTaskbarWindow(
-    taskbarBounds: Electron.Rectangle,
-  ): Promise<boolean> {
-    if (!this.window) {
-      return Promise.resolve(false);
-    }
-
-    const display = screen.getPrimaryDisplay();
-    const scaleFactor = display.scaleFactor;
-    return embedInWindowsTaskbar(
-      this.window,
-      Math.round((taskbarBounds.x - display.bounds.x) * scaleFactor),
-      Math.round(taskbarBounds.width * scaleFactor),
-      Math.round(taskbarBounds.height * scaleFactor),
-    );
+    this.window.showInactive();
+    this.window.moveTop();
   }
 
   private queueCompactPositionSave(): void {

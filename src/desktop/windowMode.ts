@@ -14,3 +14,7 @@ export function getNextWindowMode(
 
   return "full";
 }
+
+export function shouldCloseToTaskbar(taskbarModeEnabled: boolean): boolean {
+  return taskbarModeEnabled;
+}

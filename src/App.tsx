@@ -95,6 +95,15 @@ export default function App() {
     document.documentElement.dataset.theme = settings.theme;
   }, [settings.theme]);
 
+  useEffect(
+    () =>
+      electronApi.onWindowModeChanged((mode) => {
+        setWindowMode(mode);
+        setSettings((current) => ({ ...current, windowMode: mode }));
+      }),
+    [],
+  );
+
   useEffect(() => {
     if (
       timer.state.status === "finished" &&

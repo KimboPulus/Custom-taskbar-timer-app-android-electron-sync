@@ -34,6 +34,10 @@ app.on("window-all-closed", () => {
   app.quit();
 });
 
+app.on("before-quit", () => {
+  windowManager?.prepareToQuit();
+});
+
 app.on("will-quit", () => {
   settingsStore?.flushSync();
   shortcutManager?.unregisterAll();

@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { getNextWindowMode } from "./windowMode";
+import {
+  getNextWindowMode,
+  shouldCloseToTaskbar,
+} from "./windowMode";
 
 describe("window mode cycling", () => {
   it("cycles through full, compact, and taskbar when enabled", () => {
@@ -12,5 +15,10 @@ describe("window mode cycling", () => {
     expect(getNextWindowMode("full", false)).toBe("compact");
     expect(getNextWindowMode("compact", false)).toBe("full");
     expect(getNextWindowMode("taskbar", false)).toBe("full");
+  });
+
+  it("keeps the app in the taskbar on close only when enabled", () => {
+    expect(shouldCloseToTaskbar(true)).toBe(true);
+    expect(shouldCloseToTaskbar(false)).toBe(false);
   });
 });
