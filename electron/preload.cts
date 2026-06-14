@@ -13,14 +13,16 @@ const electronAPI: ElectronAPI = {
     ipcRenderer.invoke("window:set-mode", mode),
   cycleWindowMode: () => ipcRenderer.invoke("window:cycle-mode"),
   onWindowModeChanged: (callback) => {
-    const listener = (_event: Electron.IpcRendererEvent, mode: WindowMode) => {
-      callback(mode);
-    };
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      mode: WindowMode,
+      transitionId: number,
+    ) => callback(mode, transitionId);
     ipcRenderer.on("window:mode-changed", listener);
     return () => ipcRenderer.removeListener("window:mode-changed", listener);
   },
-  notifyWindowModeRendered: (mode) =>
-    ipcRenderer.send("window:mode-rendered", mode),
+  notifyWindowModeRendered: (mode, transitionId) =>
+    ipcRenderer.send("window:mode-rendered", mode, transitionId),
   minimizeWindow: () => ipcRenderer.send("window:minimize"),
   closeWindow: () => ipcRenderer.send("window:close"),
   onShortcutAction: (callback) => {

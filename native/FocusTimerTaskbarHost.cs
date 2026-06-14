@@ -27,9 +27,6 @@ internal static class FocusTimerTaskbarHost
         uint flags
     );
 
-    [DllImport("user32.dll")]
-    private static extern bool ShowWindow(IntPtr hWnd, int command);
-
     private static int Main(string[] args)
     {
         try
@@ -81,7 +78,6 @@ internal static class FocusTimerTaskbarHost
             if (args[0] == "detach")
             {
                 SetParent(child, IntPtr.Zero);
-                ShowWindow(child, 5);
                 return 0;
             }
 

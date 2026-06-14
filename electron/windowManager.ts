@@ -27,10 +27,14 @@ export class WindowManager {
   private savePositionTimer: NodeJS.Timeout | null = null;
   private taskbarEmbedded = false;
   private quitting = false;
+  private nativeWindowReady = false;
+  private initialModeActivated = false;
   private lastRenderedMode: WindowMode | null = null;
+  private nextTransitionId = 0;
   private renderedModeWaiter:
     | {
         mode: WindowMode;
+        transitionId?: number;
         resolve: () => void;
         timeout: NodeJS.Timeout;
       }
@@ -41,6 +45,9 @@ export class WindowManager {
   createWindow(): BrowserWindow {
     const settings = this.settingsStore.get();
     this.mode = settings.windowMode;
+    this.nativeWindowReady = false;
+    this.initialModeActivated = false;
+    this.lastRenderedMode = null;
     const initialBounds = this.getBoundsForMode(this.mode);
     const fixedSize = this.mode !== "full";
 
@@ -79,7 +86,10 @@ export class WindowManager {
       });
     }
 
-    this.window.on("ready-to-show", () => void this.activateInitialMode());
+    this.window.on("ready-to-show", () => {
+      this.nativeWindowReady = true;
+      void this.maybeActivateInitialMode();
+    });
     this.window.on("move", () => this.queueCompactPositionSave());
     this.window.on("close", (event) => {
       if (
@@ -119,9 +129,15 @@ export class WindowManager {
     return this.mode;
   }
 
-  rendererModeRendered(mode: WindowMode): void {
-    this.lastRenderedMode = mode;
-    if (this.renderedModeWaiter?.mode === mode) {
+  rendererModeRendered(mode: WindowMode, transitionId?: number): void {
+    if (transitionId === undefined) {
+      this.lastRenderedMode = mode;
+      void this.maybeActivateInitialMode();
+    }
+    if (
+      this.renderedModeWaiter?.mode === mode &&
+      this.renderedModeWaiter.transitionId === transitionId
+    ) {
       clearTimeout(this.renderedModeWaiter.timeout);
       this.renderedModeWaiter.resolve();
       this.renderedModeWaiter = null;
@@ -147,11 +163,13 @@ export class WindowManager {
       return this.mode;
     }
 
-    this.window.setOpacity(0);
-
     if (this.mode === "taskbar" && this.taskbarEmbedded) {
+      this.window.setOpacity(0);
+      this.window.hide();
       await detachFromWindowsTaskbar(this.window);
       this.taskbarEmbedded = false;
+    } else {
+      this.window.setOpacity(0);
     }
 
     if (this.mode === "full") {
@@ -161,22 +179,38 @@ export class WindowManager {
     }
 
     this.mode = nextMode;
-    const rendererReady = this.waitForRenderedMode(nextMode);
-    this.window.webContents.send("window:mode-changed", nextMode);
+    this.prepareMode();
+    this.window.showInactive();
+
+    const transitionId = ++this.nextTransitionId;
+    const rendererReady = this.waitForRenderedMode(nextMode, transitionId);
+    this.window.webContents.send(
+      "window:mode-changed",
+      nextMode,
+      transitionId,
+    );
     await rendererReady;
 
-    const applied = await this.applyMode();
+    const applied = await this.revealMode();
     if (!applied && nextMode === "taskbar") {
       this.mode = "full";
-      const rendererReady = this.waitForRenderedMode("full");
-      this.window.webContents.send("window:mode-changed", "full");
-      await rendererReady;
-      await this.applyMode();
+      this.prepareMode();
+      this.window.showInactive();
+
+      const fallbackTransitionId = ++this.nextTransitionId;
+      const fallbackRendererReady = this.waitForRenderedMode(
+        "full",
+        fallbackTransitionId,
+      );
+      this.window.webContents.send(
+        "window:mode-changed",
+        "full",
+        fallbackTransitionId,
+      );
+      await fallbackRendererReady;
+      await this.revealMode();
     }
-    await this.settingsStore.update({ windowMode: nextMode });
-    if (this.mode !== nextMode) {
-      await this.settingsStore.update({ windowMode: this.mode });
-    }
+    await this.settingsStore.update({ windowMode: this.mode });
     return this.mode;
   }
 
@@ -215,26 +249,48 @@ export class WindowManager {
   };
 
   private async activateInitialMode(): Promise<void> {
-    if (this.mode === "taskbar") {
-      this.window?.setOpacity(0);
-      this.window?.showInactive();
-      await this.waitForRenderedMode("taskbar");
+    if (!this.window) {
+      return;
     }
 
-    const applied = await this.applyMode();
+    this.window.setOpacity(0);
+    this.prepareMode();
+    this.window.showInactive();
+
+    const transitionId = ++this.nextTransitionId;
+    const rendererReady = this.waitForRenderedMode(
+      this.mode,
+      transitionId,
+    );
+    this.window.webContents.send(
+      "window:mode-changed",
+      this.mode,
+      transitionId,
+    );
+    await rendererReady;
+
+    const applied = await this.revealMode();
     if (!applied && this.mode === "taskbar") {
       this.mode = "full";
-      const rendererReady = this.waitForRenderedMode("full");
-      this.window?.webContents.send("window:mode-changed", "full");
+      this.prepareMode();
+      this.window.showInactive();
+
+      const transitionId = ++this.nextTransitionId;
+      const rendererReady = this.waitForRenderedMode("full", transitionId);
+      this.window.webContents.send(
+        "window:mode-changed",
+        "full",
+        transitionId,
+      );
       await rendererReady;
-      await this.applyMode();
+      await this.revealMode();
       await this.settingsStore.update({ windowMode: "full" });
     }
   }
 
-  private async applyMode(): Promise<boolean> {
+  private prepareMode(): void {
     if (!this.window) {
-      return false;
+      return;
     }
 
     this.window.unmaximize();
@@ -252,10 +308,7 @@ export class WindowManager {
         this.fullBounds ?? this.getCenteredFullBounds(),
       );
       this.ensureWindowIsVisible();
-      this.window.setOpacity(1);
-      this.window.show();
-      this.window.focus();
-      return true;
+      return;
     }
 
     this.window.setResizable(false);
@@ -269,10 +322,7 @@ export class WindowManager {
       this.window.setMinimumSize(COMPACT_SIZE.width, COMPACT_SIZE.height);
       this.window.setBounds(this.getBoundsForMode("compact"));
       this.ensureWindowIsVisible();
-      this.window.setOpacity(1);
-      this.window.show();
-      this.window.focus();
-      return true;
+      return;
     }
 
     const taskbarBounds = this.getTaskbarOverlayBounds();
@@ -283,11 +333,41 @@ export class WindowManager {
     });
     this.window.setMinimumSize(taskbarBounds.width, taskbarBounds.height);
     this.window.setBounds(taskbarBounds);
+  }
+
+  private async revealMode(): Promise<boolean> {
+    if (!this.window) {
+      return false;
+    }
+
+    if (this.mode !== "taskbar") {
+      this.window.webContents.invalidate();
+      this.window.setOpacity(1);
+      this.window.show();
+      this.window.focus();
+      return true;
+    }
+
+    const taskbarBounds = this.getTaskbarOverlayBounds();
+    this.window.webContents.invalidate();
     this.taskbarEmbedded = await this.embedTaskbarWindow(taskbarBounds);
     if (this.taskbarEmbedded) {
       this.window.setOpacity(1);
     }
     return this.taskbarEmbedded;
+  }
+
+  private async maybeActivateInitialMode(): Promise<void> {
+    if (
+      this.initialModeActivated ||
+      !this.nativeWindowReady ||
+      this.lastRenderedMode === null
+    ) {
+      return;
+    }
+
+    this.initialModeActivated = true;
+    await this.activateInitialMode();
   }
 
   private getBoundsForMode(mode: WindowMode): Electron.Rectangle {
@@ -354,6 +434,7 @@ export class WindowManager {
       return;
     }
 
+    this.window.setOpacity(0);
     if (this.taskbarEmbedded) {
       await detachFromWindowsTaskbar(this.window);
       this.taskbarEmbedded = false;
@@ -362,6 +443,11 @@ export class WindowManager {
     const taskbarBounds = this.getTaskbarOverlayBounds();
     this.window.setBounds(taskbarBounds);
     this.taskbarEmbedded = await this.embedTaskbarWindow(taskbarBounds);
+    if (this.taskbarEmbedded) {
+      this.window.setOpacity(1);
+    } else {
+      await this.setMode("full");
+    }
   }
 
   private embedTaskbarWindow(
@@ -381,8 +467,14 @@ export class WindowManager {
     );
   }
 
-  private waitForRenderedMode(mode: WindowMode): Promise<void> {
-    if (this.lastRenderedMode === mode) {
+  private waitForRenderedMode(
+    mode: WindowMode,
+    transitionId?: number,
+  ): Promise<void> {
+    if (
+      transitionId === undefined &&
+      this.lastRenderedMode === mode
+    ) {
       return Promise.resolve();
     }
 
@@ -393,13 +485,21 @@ export class WindowManager {
 
     return new Promise((resolve) => {
       const timeout = setTimeout(() => {
-        if (this.renderedModeWaiter?.mode === mode) {
+        if (
+          this.renderedModeWaiter?.mode === mode &&
+          this.renderedModeWaiter.transitionId === transitionId
+        ) {
           this.renderedModeWaiter = null;
         }
         resolve();
       }, 1_000);
       timeout.unref();
-      this.renderedModeWaiter = { mode, resolve, timeout };
+      this.renderedModeWaiter = {
+        mode,
+        transitionId,
+        resolve,
+        timeout,
+      };
     });
   }
 

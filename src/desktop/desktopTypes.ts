@@ -76,8 +76,13 @@ export type AppSettings = {
 export type ElectronAPI = {
   setWindowMode: (mode: WindowMode) => Promise<WindowMode>;
   cycleWindowMode: () => Promise<WindowMode>;
-  onWindowModeChanged: (callback: (mode: WindowMode) => void) => () => void;
-  notifyWindowModeRendered: (mode: WindowMode) => void;
+  onWindowModeChanged: (
+    callback: (mode: WindowMode, transitionId: number) => void,
+  ) => () => void;
+  notifyWindowModeRendered: (
+    mode: WindowMode,
+    transitionId?: number,
+  ) => void;
   minimizeWindow: () => void;
   closeWindow: () => void;
   onShortcutAction: (callback: (action: ShortcutAction) => void) => () => void;

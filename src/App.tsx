@@ -67,6 +67,7 @@ export default function App() {
   const [dailyPlanOpen, setDailyPlanOpen] = useState(false);
   const [shortcutWarnings, setShortcutWarnings] = useState<string[]>([]);
   const [windowMode, setWindowMode] = useState<WindowMode>("full");
+  const [modeTransitionId, setModeTransitionId] = useState<number>();
   const timer = useTimerStore(fallbackSettings.selectedDurationMs);
   const previousStatus = useRef(timer.state.status);
 
@@ -83,6 +84,7 @@ export default function App() {
     ]).then(([loaded, warnings]) => {
       setSettings(loaded);
       setWindowMode(loaded.windowMode);
+      setModeTransitionId(undefined);
       previousStatus.current = loaded.timerState.status;
       timer.restore(loaded.timerState);
       setShortcutWarnings(warnings);
@@ -102,8 +104,9 @@ export default function App() {
 
   useEffect(
     () =>
-      electronApi.onWindowModeChanged((mode) => {
+      electronApi.onWindowModeChanged((mode, transitionId) => {
         setWindowMode(mode);
+        setModeTransitionId(transitionId);
         setSettings((current) => ({ ...current, windowMode: mode }));
       }),
     [],
@@ -114,10 +117,18 @@ export default function App() {
       return;
     }
 
+    if (modeTransitionId === undefined) {
+      const timeout = window.setTimeout(() => {
+        electronApi.notifyWindowModeRendered(windowMode);
+      }, 0);
+
+      return () => window.clearTimeout(timeout);
+    }
+
     let secondFrame = 0;
     const firstFrame = requestAnimationFrame(() => {
       secondFrame = requestAnimationFrame(() => {
-        electronApi.notifyWindowModeRendered(windowMode);
+        electronApi.notifyWindowModeRendered(windowMode, modeTransitionId);
       });
     });
 
@@ -125,7 +136,7 @@ export default function App() {
       cancelAnimationFrame(firstFrame);
       cancelAnimationFrame(secondFrame);
     };
-  }, [settingsReady, windowMode]);
+  }, [modeTransitionId, settingsReady, windowMode]);
 
   useEffect(() => {
     if (

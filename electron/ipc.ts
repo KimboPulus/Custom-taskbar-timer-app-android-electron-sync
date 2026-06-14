@@ -22,8 +22,10 @@ export function registerIpcHandlers(
     windowManager.setMode(mode),
   );
   ipcMain.handle("window:cycle-mode", () => windowManager.cycleMode());
-  ipcMain.on("window:mode-rendered", (_event, mode: WindowMode) =>
-    windowManager.rendererModeRendered(mode),
+  ipcMain.on(
+    "window:mode-rendered",
+    (_event, mode: WindowMode, transitionId?: number) =>
+      windowManager.rendererModeRendered(mode, transitionId),
   );
   ipcMain.on("window:minimize", () => windowManager.minimize());
   ipcMain.on("window:close", () => windowManager.close());
