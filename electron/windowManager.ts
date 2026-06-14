@@ -21,6 +21,7 @@ export class WindowManager {
   private mode: WindowMode = "full";
   private fullBounds: Electron.Rectangle | null = null;
   private savePositionTimer: NodeJS.Timeout | null = null;
+  private taskbarVisibilityTimer: NodeJS.Timeout | null = null;
   private quitting = false;
 
   constructor(private readonly settingsStore: SettingsStore) {}
@@ -67,6 +68,9 @@ export class WindowManager {
 
     this.window.on("ready-to-show", () => void this.activateInitialMode());
     this.window.on("move", () => this.queueCompactPositionSave());
+    this.window.on("blur", () => this.reassertTaskbarVisibility());
+    this.window.on("minimize", () => this.reassertTaskbarVisibility());
+    this.window.on("hide", () => this.reassertTaskbarVisibility());
     this.window.on("close", (event) => {
       if (
         !this.quitting &&
@@ -77,6 +81,7 @@ export class WindowManager {
       }
     });
     this.window.on("closed", () => {
+      this.stopTaskbarVisibilityKeeper();
       screen.removeListener("display-metrics-changed", this.handleDisplayChange);
       this.window = null;
     });
@@ -163,11 +168,13 @@ export class WindowManager {
 
   async quit(): Promise<void> {
     this.quitting = true;
+    this.stopTaskbarVisibilityKeeper();
     app.quit();
   }
 
   prepareToQuit(): void {
     this.quitting = true;
+    this.stopTaskbarVisibilityKeeper();
   }
 
   private readonly handleDisplayChange = () => {
@@ -196,6 +203,7 @@ export class WindowManager {
     this.window.setMinimumSize(1, 1);
 
     if (this.mode === "full") {
+      this.stopTaskbarVisibilityKeeper();
       this.window.setAlwaysOnTop(false);
       this.window.setVisibleOnAllWorkspaces(false);
       this.window.setSkipTaskbar(false);
@@ -217,6 +225,7 @@ export class WindowManager {
     this.window.setAlwaysOnTop(true, "screen-saver", 1);
 
     if (this.mode === "compact") {
+      this.stopTaskbarVisibilityKeeper();
       this.window.setVisibleOnAllWorkspaces(false);
       this.window.setSkipTaskbar(false);
       this.window.setMovable(true);
@@ -238,6 +247,7 @@ export class WindowManager {
     this.window.setBounds(taskbarBounds);
     this.window.showInactive();
     this.window.moveTop();
+    this.startTaskbarVisibilityKeeper();
     return true;
   }
 
@@ -311,6 +321,46 @@ export class WindowManager {
     const taskbarBounds = this.getTaskbarOverlayBounds();
     this.window.setBounds(taskbarBounds);
     this.window.showInactive();
+    this.window.moveTop();
+  }
+
+  private startTaskbarVisibilityKeeper(): void {
+    this.stopTaskbarVisibilityKeeper();
+    this.taskbarVisibilityTimer = setInterval(
+      () => this.maintainTaskbarVisibility(),
+      1_000,
+    );
+    this.taskbarVisibilityTimer.unref();
+  }
+
+  private stopTaskbarVisibilityKeeper(): void {
+    if (this.taskbarVisibilityTimer) {
+      clearInterval(this.taskbarVisibilityTimer);
+      this.taskbarVisibilityTimer = null;
+    }
+  }
+
+  private reassertTaskbarVisibility(): void {
+    if (this.mode !== "taskbar") {
+      return;
+    }
+
+    setTimeout(() => this.maintainTaskbarVisibility(), 50).unref();
+  }
+
+  private maintainTaskbarVisibility(): void {
+    if (!this.window || this.mode !== "taskbar" || this.quitting) {
+      return;
+    }
+
+    if (this.window.isMinimized()) {
+      this.window.restore();
+    }
+    if (!this.window.isVisible()) {
+      this.window.showInactive();
+    }
+
+    this.window.setAlwaysOnTop(true, "screen-saver", 1);
     this.window.moveTop();
   }
 
