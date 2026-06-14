@@ -1,4 +1,9 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { CompactTimer } from "./components/CompactTimer";
 import { DailyPlanPanel } from "./components/DailyPlanPanel";
 import { FullTimer } from "./components/FullTimer";
@@ -103,6 +108,24 @@ export default function App() {
       }),
     [],
   );
+
+  useEffect(() => {
+    if (!settingsReady) {
+      return;
+    }
+
+    let secondFrame = 0;
+    const firstFrame = requestAnimationFrame(() => {
+      secondFrame = requestAnimationFrame(() => {
+        electronApi.notifyWindowModeRendered(windowMode);
+      });
+    });
+
+    return () => {
+      cancelAnimationFrame(firstFrame);
+      cancelAnimationFrame(secondFrame);
+    };
+  }, [settingsReady, windowMode]);
 
   useEffect(() => {
     if (
@@ -213,11 +236,7 @@ export default function App() {
     >
       {!taskbarMode && <WindowChrome compact={compactMode} />}
       {taskbarMode ? (
-        <TaskbarTimer
-          timer={timer.state}
-          onToggle={timer.toggle}
-          onExitToFull={() => void applyWindowMode("full")}
-        />
+        <TaskbarTimer timer={timer.state} />
       ) : compactMode ? (
         <CompactTimer
           timer={timer.state}

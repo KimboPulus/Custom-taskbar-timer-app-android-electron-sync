@@ -1,4 +1,4 @@
-import { ipcMain, Menu, Notification } from "electron";
+import { ipcMain, Notification } from "electron";
 import type {
   AppSettings,
   PersistedTimerState,
@@ -22,21 +22,11 @@ export function registerIpcHandlers(
     windowManager.setMode(mode),
   );
   ipcMain.handle("window:cycle-mode", () => windowManager.cycleMode());
+  ipcMain.on("window:mode-rendered", (_event, mode: WindowMode) =>
+    windowManager.rendererModeRendered(mode),
+  );
   ipcMain.on("window:minimize", () => windowManager.minimize());
   ipcMain.on("window:close", () => windowManager.close());
-  ipcMain.on("taskbar:open-menu", () => {
-    Menu.buildFromTemplate([
-      {
-        label: "Open full window",
-        click: () => void windowManager.setMode("full"),
-      },
-      { type: "separator" },
-      {
-        label: "Quit Focus Timer",
-        click: () => void windowManager.quit(),
-      },
-    ]).popup({ window: windowManager.getWindow() ?? undefined });
-  });
 
   ipcMain.handle("settings:load", () => settingsStore.get());
   ipcMain.handle("settings:save", async (_event, patch: Partial<AppSettings>) => {
