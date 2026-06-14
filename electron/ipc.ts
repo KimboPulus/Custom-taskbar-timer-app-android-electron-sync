@@ -28,6 +28,9 @@ export function registerIpcHandlers(
       windowManager.rendererModeRendered(mode, transitionId),
   );
   ipcMain.on("window:minimize", () => windowManager.minimize());
+  ipcMain.handle("window:toggle-maximize", () =>
+    windowManager.toggleMaximize(),
+  );
   ipcMain.on("window:close", () => windowManager.close());
 
   ipcMain.handle("settings:load", () => settingsStore.get());

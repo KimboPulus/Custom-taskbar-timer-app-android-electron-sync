@@ -173,6 +173,16 @@ select:focus-visible {
   transform: translate(-50%, -50%);
 }
 
+.maximize-mark {
+  position: absolute;
+  width: 10px;
+  height: 9px;
+  border: 1px solid currentColor;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
 .close-mark::before,
 .close-mark::after {
   position: absolute;

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { electronApi } from "../desktop/electronApi";
 
 type WindowChromeProps = {
@@ -5,6 +6,12 @@ type WindowChromeProps = {
 };
 
 export function WindowChrome({ compact }: WindowChromeProps) {
+  const [maximized, setMaximized] = useState(false);
+
+  const toggleMaximize = async () => {
+    setMaximized(await electronApi.toggleMaximizeWindow());
+  };
+
   return (
     <header className={`window-chrome ${compact ? "window-chrome--compact" : ""}`}>
       <div className="window-brand">
@@ -20,6 +27,17 @@ export function WindowChrome({ compact }: WindowChromeProps) {
         >
           <span className="minimize-mark" />
         </button>
+        {!compact && (
+          <button
+            className="window-button"
+            type="button"
+            aria-label={maximized ? "Restore window" : "Maximize window"}
+            title={maximized ? "Restore" : "Maximize"}
+            onClick={() => void toggleMaximize()}
+          >
+            <span className="maximize-mark" />
+          </button>
+        )}
         <button
           className="window-button window-button--close"
           type="button"

@@ -298,6 +298,14 @@
   border: 2px solid var(--teal);
 }
 
+.daily-plan-legend .daily-plan-legend__hint {
+  margin-left: auto;
+}
+
+.daily-plan-legend .daily-plan-legend__hint::before {
+  display: none;
+}
+
 .year-calendar {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -370,6 +378,32 @@
 .calendar-day--today {
   outline: 2px solid var(--teal);
   outline-offset: 1px;
+}
+
+.calendar-day--editable {
+  width: 100%;
+  padding: 0;
+  border: 0;
+  font-family: inherit;
+  cursor: pointer;
+  transition:
+    filter 120ms ease,
+    transform 120ms ease;
+}
+
+.calendar-day--editable:hover {
+  filter: brightness(0.92);
+  transform: translateY(-1px);
+}
+
+.calendar-day--editable:focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: 1px;
+}
+
+.calendar-day--editable:disabled {
+  cursor: wait;
+  opacity: 0.72;
 }
 
 .calendar-day--blank {

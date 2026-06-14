@@ -24,6 +24,7 @@ const electronAPI: ElectronAPI = {
   notifyWindowModeRendered: (mode, transitionId) =>
     ipcRenderer.send("window:mode-rendered", mode, transitionId),
   minimizeWindow: () => ipcRenderer.send("window:minimize"),
+  toggleMaximizeWindow: () => ipcRenderer.invoke("window:toggle-maximize"),
   closeWindow: () => ipcRenderer.send("window:close"),
   onShortcutAction: (callback) => {
     const listener = (_event: Electron.IpcRendererEvent, action: ShortcutAction) => {

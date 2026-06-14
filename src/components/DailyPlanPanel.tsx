@@ -123,6 +123,31 @@ export function DailyPlanPanel({
     setSaving(false);
   };
 
+  const togglePastDate = async (dateKey: string) => {
+    if (
+      !configured ||
+      !plan.startDate ||
+      dateKey < plan.startDate ||
+      dateKey >= todayKey
+    ) {
+      return;
+    }
+
+    const completedDates = new Set(plan.completedDates);
+    if (completedDates.has(dateKey)) {
+      completedDates.delete(dateKey);
+    } else {
+      completedDates.add(dateKey);
+    }
+
+    setSaving(true);
+    await onSave({
+      ...plan,
+      completedDates: [...completedDates].sort(),
+    });
+    setSaving(false);
+  };
+
   return (
     <div
       className="daily-plan-backdrop"
@@ -283,6 +308,9 @@ export function DailyPlanPanel({
             <span className="daily-plan-legend__success">Successful</span>
             <span className="daily-plan-legend__failed">Failed</span>
             <span className="daily-plan-legend__pending">Today</span>
+            <span className="daily-plan-legend__hint">
+              Click a past day to change it
+            </span>
           </div>
 
           <div className="year-calendar">
@@ -313,13 +341,35 @@ export function DailyPlanPanel({
                       todayKey,
                     );
                     const isToday = dateKey === todayKey;
-                    const label = `${fullDateFormatter.format(date)}: ${status}`;
+                    const editable =
+                      configured &&
+                      plan.startDate !== null &&
+                      dateKey >= plan.startDate &&
+                      dateKey < todayKey;
+                    const nextStatus =
+                      status === "completed" ? "failed" : "successful";
+                    const label = editable
+                      ? `${fullDateFormatter.format(date)}: ${status}. Click to mark ${nextStatus}.`
+                      : `${fullDateFormatter.format(date)}: ${status}`;
+                    const className = `calendar-day calendar-day--${status} ${
+                      isToday ? "calendar-day--today" : ""
+                    } ${editable ? "calendar-day--editable" : ""}`;
 
-                    return (
+                    return editable ? (
+                      <button
+                        type="button"
+                        className={className}
+                        aria-label={label}
+                        title={label}
+                        disabled={saving}
+                        onClick={() => void togglePastDate(dateKey)}
+                        key={dateKey}
+                      >
+                        {day}
+                      </button>
+                    ) : (
                       <span
-                        className={`calendar-day calendar-day--${status} ${
-                          isToday ? "calendar-day--today" : ""
-                        }`}
+                        className={className}
                         aria-label={label}
                         title={label}
                         key={dateKey}

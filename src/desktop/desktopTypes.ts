@@ -84,6 +84,7 @@ export type ElectronAPI = {
     transitionId?: number,
   ) => void;
   minimizeWindow: () => void;
+  toggleMaximizeWindow: () => Promise<boolean>;
   closeWindow: () => void;
   onShortcutAction: (callback: (action: ShortcutAction) => void) => () => void;
   loadSettings: () => Promise<AppSettings>;

@@ -232,6 +232,20 @@ export class WindowManager {
     this.window?.minimize();
   }
 
+  toggleMaximize(): boolean {
+    if (!this.window || this.mode !== "full") {
+      return false;
+    }
+
+    if (this.window.isMaximized()) {
+      this.window.unmaximize();
+      return false;
+    }
+
+    this.window.maximize();
+    return true;
+  }
+
   close(): void {
     if (
       shouldCloseToTaskbar(this.settingsStore.get().taskbarModeEnabled)

@@ -57,6 +57,7 @@ const browserFallback: ElectronAPI = {
   onWindowModeChanged: () => () => undefined,
   notifyWindowModeRendered: () => undefined,
   minimizeWindow: () => undefined,
+  toggleMaximizeWindow: async () => false,
   closeWindow: () => undefined,
   onShortcutAction: () => () => undefined,
   loadSettings: async () => structuredClone(browserSettings),
