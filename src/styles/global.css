@@ -1,0 +1,241 @@
+:root {
+  color: #172525;
+  background: #f4f7f6;
+  font-family:
+    "Segoe UI Variable", "Segoe UI", system-ui, -apple-system, sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  --bg: #f4f7f6;
+  --surface: #ffffff;
+  --surface-soft: #edf3f1;
+  --text: #172525;
+  --muted: #6c7c79;
+  --line: #dce6e3;
+  --teal: #0b8f87;
+  --teal-dark: #08736d;
+  --teal-soft: #dff3f0;
+  --shadow: 0 22px 55px rgba(34, 65, 61, 0.12);
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #14201f;
+  --surface: #1b2a29;
+  --surface-soft: #243735;
+  --text: #eef7f5;
+  --muted: #9bb0ac;
+  --line: #314744;
+  --teal: #37b8ae;
+  --teal-dark: #5bd0c6;
+  --teal-soft: #1e4844;
+  --shadow: 0 22px 55px rgba(0, 0, 0, 0.3);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="system"] {
+    color-scheme: dark;
+    --bg: #14201f;
+    --surface: #1b2a29;
+    --surface-soft: #243735;
+    --text: #eef7f5;
+    --muted: #9bb0ac;
+    --line: #314744;
+    --teal: #37b8ae;
+    --teal-dark: #5bd0c6;
+    --teal-soft: #1e4844;
+    --shadow: 0 22px 55px rgba(0, 0, 0, 0.3);
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
+body {
+  background: transparent;
+  color: var(--text);
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+button {
+  color: inherit;
+}
+
+button,
+select {
+  cursor: pointer;
+}
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--teal) 30%, transparent);
+  outline-offset: 2px;
+}
+
+.app-shell {
+  width: 100%;
+  height: 100%;
+  background: var(--bg);
+  border: 1px solid color-mix(in srgb, var(--line) 70%, transparent);
+}
+
+.app-loading {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  place-items: center;
+  background: var(--bg);
+  color: var(--muted);
+}
+
+.window-chrome {
+  position: relative;
+  z-index: 20;
+  display: flex;
+  height: 42px;
+  align-items: center;
+  justify-content: space-between;
+  padding-left: 18px;
+  border-bottom: 1px solid var(--line);
+  background: color-mix(in srgb, var(--bg) 93%, var(--surface));
+  -webkit-app-region: drag;
+  user-select: none;
+}
+
+.window-chrome--compact {
+  height: 31px;
+  padding-left: 11px;
+}
+
+.window-brand {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+}
+
+.window-brand__mark {
+  width: 10px;
+  height: 10px;
+  border: 2px solid var(--teal);
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 2px var(--bg);
+  background: var(--teal);
+}
+
+.window-actions {
+  display: flex;
+  height: 100%;
+  -webkit-app-region: no-drag;
+}
+
+.window-button {
+  position: relative;
+  width: 46px;
+  height: 100%;
+  border: 0;
+  background: transparent;
+}
+
+.window-button:hover {
+  background: var(--surface-soft);
+}
+
+.window-button--close:hover {
+  color: white;
+  background: #c42b1c;
+}
+
+.minimize-mark {
+  position: absolute;
+  top: 55%;
+  left: 50%;
+  width: 11px;
+  height: 1px;
+  background: currentColor;
+  transform: translate(-50%, -50%);
+}
+
+.close-mark::before,
+.close-mark::after {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 12px;
+  height: 1px;
+  content: "";
+  background: currentColor;
+}
+
+.close-mark::before {
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.close-mark::after {
+  transform: translate(-50%, -50%) rotate(-45deg);
+}
+
+.eyebrow {
+  display: block;
+  margin-bottom: 7px;
+  color: var(--teal-dark);
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.icon-button,
+.icon-text-button,
+.control-button,
+.compact-expand {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+}
+
+.icon-button {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: 0 4px 16px rgba(29, 61, 57, 0.08);
+}
+
+.icon-button:hover {
+  background: var(--surface-soft);
+}
+
+.icon-text-button {
+  height: 40px;
+  gap: 8px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.icon-text-button:hover {
+  border-color: var(--teal);
+  color: var(--teal-dark);
+}

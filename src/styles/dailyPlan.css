@@ -1,0 +1,357 @@
+.daily-plan-backdrop {
+  position: fixed;
+  z-index: 30;
+  inset: 42px 0 0;
+  display: flex;
+  justify-content: flex-end;
+  background: rgba(10, 22, 21, 0.36);
+  backdrop-filter: blur(3px);
+}
+
+.daily-plan-panel {
+  width: min(760px, 97vw);
+  height: 100%;
+  overflow: auto;
+  padding: 26px;
+  border-left: 1px solid var(--line);
+  background: var(--bg);
+  box-shadow: -18px 0 45px rgba(19, 46, 43, 0.18);
+}
+
+.daily-plan-header,
+.daily-plan-history__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.daily-plan-header h2 {
+  margin: 0;
+  font-size: 25px;
+  letter-spacing: -0.03em;
+}
+
+.daily-plan-header > button {
+  border: 0;
+  color: var(--teal-dark);
+  background: transparent;
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.daily-plan-top {
+  display: grid;
+  grid-template-columns: minmax(0, 1.12fr) minmax(230px, 0.88fr);
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.daily-plan-setup,
+.daily-plan-today,
+.daily-plan-history {
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: var(--surface);
+}
+
+.daily-plan-setup,
+.daily-plan-today {
+  padding: 20px;
+}
+
+.daily-plan-setup h3,
+.daily-plan-today h3,
+.daily-plan-history h3 {
+  margin: 3px 0 0;
+  font-size: 18px;
+  letter-spacing: -0.02em;
+}
+
+.daily-plan-setup p,
+.daily-plan-today p {
+  margin: 7px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.daily-plan-kicker {
+  color: var(--teal-dark);
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.daily-plan-setup label {
+  display: block;
+  margin-top: 14px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.daily-plan-setup input {
+  width: 100%;
+  height: 40px;
+  margin-top: 6px;
+  padding: 0 11px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  color: var(--text);
+  background: var(--bg);
+}
+
+.daily-plan-set,
+.daily-plan-today > button {
+  width: 100%;
+  min-height: 41px;
+  border: 0;
+  border-radius: 11px;
+  color: white;
+  background: var(--teal);
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.daily-plan-set {
+  margin-top: 14px;
+}
+
+.daily-plan-set:hover,
+.daily-plan-today > button:hover {
+  background: var(--teal-dark);
+}
+
+.daily-plan-set:disabled,
+.daily-plan-today > button:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+.daily-plan-error {
+  color: #b63b2c !important;
+}
+
+.daily-plan-today {
+  display: flex;
+  flex-direction: column;
+  background:
+    linear-gradient(
+      145deg,
+      color-mix(in srgb, var(--teal-soft) 62%, var(--surface)),
+      var(--surface) 66%
+    );
+}
+
+.daily-plan-today--completed {
+  border-color: color-mix(in srgb, var(--teal) 55%, var(--line));
+}
+
+.daily-plan-today__status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: auto 0 16px;
+  padding-top: 24px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.daily-plan-today__status span {
+  width: 9px;
+  height: 9px;
+  border: 2px solid var(--muted);
+  border-radius: 50%;
+}
+
+.daily-plan-today--completed .daily-plan-today__status {
+  color: var(--teal-dark);
+}
+
+.daily-plan-today--completed .daily-plan-today__status span {
+  border-color: var(--teal);
+  background: var(--teal);
+}
+
+.daily-plan-history {
+  margin-top: 16px;
+  padding: 20px;
+}
+
+.daily-plan-history__header {
+  align-items: center;
+}
+
+.daily-plan-stats {
+  display: flex;
+  gap: 14px;
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.daily-plan-stats span {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.daily-plan-stats strong {
+  color: var(--text);
+  font-size: 16px;
+}
+
+.daily-plan-year-controls {
+  display: flex;
+  gap: 6px;
+}
+
+.daily-plan-year-controls button {
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  color: var(--text);
+  background: var(--surface-soft);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.daily-plan-year-controls button:disabled {
+  cursor: default;
+  opacity: 0.42;
+}
+
+.daily-plan-legend {
+  display: flex;
+  gap: 16px;
+  margin: 17px 0 15px;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.daily-plan-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.daily-plan-legend span::before {
+  width: 9px;
+  height: 9px;
+  border-radius: 3px;
+  content: "";
+}
+
+.daily-plan-legend__success::before {
+  background: var(--teal);
+}
+
+.daily-plan-legend__failed::before {
+  background: #c85749;
+}
+
+.daily-plan-legend__pending::before {
+  border: 2px solid var(--teal);
+}
+
+.year-calendar {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px 14px;
+}
+
+.calendar-month {
+  min-width: 0;
+}
+
+.calendar-month h4 {
+  margin: 0 0 8px;
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.calendar-weekdays,
+.calendar-days {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 3px;
+}
+
+.calendar-weekdays {
+  margin-bottom: 4px;
+  color: var(--muted);
+  font-size: 8px;
+  font-weight: 750;
+  text-align: center;
+}
+
+.calendar-day {
+  display: grid;
+  min-width: 0;
+  aspect-ratio: 1;
+  place-items: center;
+  border-radius: 5px;
+  color: var(--muted);
+  font-size: 8px;
+  font-variant-numeric: tabular-nums;
+}
+
+.calendar-day--completed {
+  color: white;
+  background: var(--teal);
+  font-weight: 750;
+}
+
+.calendar-day--failed {
+  color: white;
+  background: #c85749;
+  font-weight: 750;
+}
+
+.calendar-day--pending {
+  color: var(--teal-dark);
+  background: var(--teal-soft);
+  font-weight: 750;
+}
+
+.calendar-day--upcoming {
+  color: color-mix(in srgb, var(--muted) 70%, transparent);
+  background: var(--surface-soft);
+}
+
+.calendar-day--inactive {
+  opacity: 0.34;
+}
+
+.calendar-day--today {
+  outline: 2px solid var(--teal);
+  outline-offset: 1px;
+}
+
+.calendar-day--blank {
+  visibility: hidden;
+}
+
+@media (max-width: 760px) {
+  .daily-plan-top {
+    grid-template-columns: 1fr;
+  }
+
+  .daily-plan-history__header {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .daily-plan-stats {
+    width: 100%;
+    margin-left: 0;
+    order: 3;
+  }
+
+  .year-calendar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
