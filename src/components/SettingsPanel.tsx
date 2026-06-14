@@ -266,8 +266,8 @@ export function SettingsPanel({
           <div>
             <strong>Taskbar timer mode</strong>
             <p>
-              Include it in the Ctrl+Alt+T cycle and keep it there when the
-              main window is closed. Right-click the taskbar timer to quit.
+              When enabled, Ctrl+Alt+T toggles between the main window and
+              taskbar timer. When disabled, it toggles between main and compact.
             </p>
           </div>
           <label className="switch">

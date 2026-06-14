@@ -4,15 +4,11 @@ export function getNextWindowMode(
   currentMode: WindowMode,
   taskbarModeEnabled: boolean,
 ): WindowMode {
-  if (currentMode === "full") {
-    return "compact";
+  if (taskbarModeEnabled) {
+    return currentMode === "taskbar" ? "full" : "taskbar";
   }
 
-  if (currentMode === "compact") {
-    return taskbarModeEnabled ? "taskbar" : "full";
-  }
-
-  return "full";
+  return currentMode === "compact" ? "full" : "compact";
 }
 
 export function shouldCloseToTaskbar(taskbarModeEnabled: boolean): boolean {

@@ -5,16 +5,16 @@ import {
 } from "./windowMode";
 
 describe("window mode cycling", () => {
-  it("cycles through full, compact, and taskbar when enabled", () => {
-    expect(getNextWindowMode("full", true)).toBe("compact");
+  it("toggles between full and taskbar when taskbar mode is enabled", () => {
+    expect(getNextWindowMode("full", true)).toBe("taskbar");
     expect(getNextWindowMode("compact", true)).toBe("taskbar");
     expect(getNextWindowMode("taskbar", true)).toBe("full");
   });
 
-  it("skips taskbar mode when it is disabled", () => {
+  it("toggles between full and compact when taskbar mode is disabled", () => {
     expect(getNextWindowMode("full", false)).toBe("compact");
     expect(getNextWindowMode("compact", false)).toBe("full");
-    expect(getNextWindowMode("taskbar", false)).toBe("full");
+    expect(getNextWindowMode("taskbar", false)).toBe("compact");
   });
 
   it("keeps the app in the taskbar on close only when enabled", () => {
