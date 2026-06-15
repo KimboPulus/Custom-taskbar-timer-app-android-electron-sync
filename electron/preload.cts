@@ -44,6 +44,14 @@ const electronAPI: ElectronAPI = {
   resolveAlarmUrl: (sound: AlarmSound) =>
     ipcRenderer.invoke("media:resolve-url", sound),
   notifyTimerFinished: () => ipcRenderer.send("timer:finished"),
+  onRemoteSettingsApplied: (callback) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      settings: AppSettings,
+    ) => callback(settings);
+    ipcRenderer.on("sync:settings-applied", listener);
+    return () => ipcRenderer.removeListener("sync:settings-applied", listener);
+  },
 };
 
 contextBridge.exposeInMainWorld("electronAPI", electronAPI);

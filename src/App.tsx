@@ -99,6 +99,18 @@ export default function App() {
     }
   }, [settingsReady, timer.state]);
 
+  useEffect(
+    () =>
+      electronApi.onRemoteSettingsApplied((remoteSettings) => {
+        setSettings(remoteSettings);
+        setWindowMode(remoteSettings.windowMode);
+        setModeTransitionId(undefined);
+        previousStatus.current = remoteSettings.timerState.status;
+        timer.restore(remoteSettings.timerState);
+      }),
+    [timer.restore],
+  );
+
   useEffect(() => {
     document.documentElement.dataset.theme = settings.theme;
   }, [settings.theme]);

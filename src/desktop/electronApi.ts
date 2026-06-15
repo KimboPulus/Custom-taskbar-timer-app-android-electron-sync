@@ -84,6 +84,7 @@ const browserFallback: ElectronAPI = {
   chooseCustomMedia: async () => null,
   resolveAlarmUrl: async () => null,
   notifyTimerFinished: () => undefined,
+  onRemoteSettingsApplied: () => () => undefined,
 };
 
 export const electronApi: ElectronAPI =

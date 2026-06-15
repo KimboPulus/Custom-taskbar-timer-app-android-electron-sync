@@ -2,11 +2,13 @@ import { app } from "electron";
 import { registerIpcHandlers } from "./ipc.js";
 import { SettingsStore } from "./settingsStore.js";
 import { ShortcutManager } from "./shortcuts.js";
+import { SyncServer } from "./syncServer.js";
 import { WindowManager } from "./windowManager.js";
 
 let windowManager: WindowManager | null = null;
 let shortcutManager: ShortcutManager | null = null;
 let settingsStore: SettingsStore | null = null;
+let syncServer: SyncServer | null = null;
 
 app.setName("Focus Timer");
 app.setAppUserModelId(
@@ -20,8 +22,12 @@ app.whenReady().then(async () => {
 
   windowManager = new WindowManager(settingsStore);
   shortcutManager = new ShortcutManager(windowManager);
+  syncServer = new SyncServer(settingsStore, (settings) => {
+    windowManager?.getWindow()?.webContents.send("sync:settings-applied", settings);
+  });
+  await syncServer.start();
 
-  registerIpcHandlers(windowManager, settingsStore, shortcutManager);
+  registerIpcHandlers(windowManager, settingsStore, shortcutManager, syncServer);
   windowManager.createWindow();
   shortcutManager.register(settingsStore.get().shortcutLabels);
 
@@ -42,5 +48,6 @@ app.on("before-quit", () => {
 
 app.on("will-quit", () => {
   settingsStore?.flushSync();
+  syncServer?.stop();
   shortcutManager?.unregisterAll();
 });

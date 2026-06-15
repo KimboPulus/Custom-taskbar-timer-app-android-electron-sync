@@ -11,12 +11,14 @@ import {
 } from "./media.js";
 import type { SettingsStore } from "./settingsStore.js";
 import type { ShortcutManager } from "./shortcuts.js";
+import type { SyncServer } from "./syncServer.js";
 import type { WindowManager } from "./windowManager.js";
 
 export function registerIpcHandlers(
   windowManager: WindowManager,
   settingsStore: SettingsStore,
   shortcutManager: ShortcutManager,
+  syncServer: SyncServer,
 ): void {
   ipcMain.handle("window:set-mode", (_event, mode: WindowMode) =>
     windowManager.setMode(mode),
@@ -37,6 +39,7 @@ export function registerIpcHandlers(
   ipcMain.handle("settings:save", async (_event, patch: Partial<AppSettings>) => {
     const previous = settingsStore.get();
     const next = await settingsStore.update(patch);
+    syncServer.markLocalSettingsPatch(patch);
 
     if (
       patch.shortcutLabels &&
@@ -49,6 +52,7 @@ export function registerIpcHandlers(
   });
   ipcMain.on("timer:state-save", (_event, state: PersistedTimerState) => {
     settingsStore.setTimerState(state);
+    syncServer.markTimerChanged();
   });
   ipcMain.handle("shortcuts:get-warnings", () => shortcutManager.getWarnings());
   ipcMain.handle("media:list-system-sounds", () => listSystemSounds());

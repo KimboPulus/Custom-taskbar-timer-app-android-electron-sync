@@ -96,6 +96,7 @@ export type ElectronAPI = {
   chooseCustomMedia: () => Promise<AlarmSound | null>;
   resolveAlarmUrl: (sound: AlarmSound) => Promise<string | null>;
   notifyTimerFinished: () => void;
+  onRemoteSettingsApplied: (callback: (settings: AppSettings) => void) => () => void;
 };
 
 declare global {
