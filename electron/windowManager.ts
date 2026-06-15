@@ -1,14 +1,11 @@
-import { BrowserWindow, screen } from "electron";
+import { app, BrowserWindow, screen } from "electron";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import type {
   CompactPosition,
   WindowMode,
 } from "../src/desktop/desktopTypes.js";
-import {
-  getNextWindowMode,
-  shouldCloseToTaskbar,
-} from "../src/desktop/windowMode.js";
+import { getNextWindowMode } from "../src/desktop/windowMode.js";
 import type { SettingsStore } from "./settingsStore.js";
 import {
   detachFromWindowsTaskbar,
@@ -99,17 +96,11 @@ export class WindowManager {
         this.queueCompactPositionSave();
       }
     });
-    createdWindow.on("close", (event) => {
+    createdWindow.on("close", () => {
       if (this.window !== createdWindow) {
         return;
       }
-      if (
-        !this.quitting &&
-        shouldCloseToTaskbar(this.settingsStore.get().taskbarModeEnabled)
-      ) {
-        event.preventDefault();
-        void this.setMode("taskbar");
-      }
+      this.quitting = true;
     });
     createdWindow.on("closed", () => {
       if (this.window === createdWindow) {
@@ -247,14 +238,8 @@ export class WindowManager {
   }
 
   close(): void {
-    if (
-      shouldCloseToTaskbar(this.settingsStore.get().taskbarModeEnabled)
-    ) {
-      void this.setMode("taskbar");
-      return;
-    }
-
-    this.window?.close();
+    this.quitting = true;
+    app.quit();
   }
 
   prepareToQuit(): void {

@@ -10,7 +10,3 @@ export function getNextWindowMode(
 
   return currentMode === "compact" ? "full" : "compact";
 }
-
-export function shouldCloseToTaskbar(taskbarModeEnabled: boolean): boolean {
-  return taskbarModeEnabled;
-}
