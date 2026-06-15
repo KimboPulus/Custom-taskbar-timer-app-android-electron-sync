@@ -9,7 +9,9 @@ let shortcutManager: ShortcutManager | null = null;
 let settingsStore: SettingsStore | null = null;
 
 app.setName("Focus Timer");
-app.setAppUserModelId("com.max.focustimer");
+app.setAppUserModelId(
+  app.isPackaged ? "com.max.focustimer" : "com.max.focustimer.dev",
+);
 app.commandLine.appendSwitch("autoplay-policy", "no-user-gesture-required");
 
 app.whenReady().then(async () => {
