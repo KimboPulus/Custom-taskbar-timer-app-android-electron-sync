@@ -25,7 +25,11 @@ app.whenReady().then(async () => {
   syncServer = new SyncServer(settingsStore, (settings) => {
     windowManager?.getWindow()?.webContents.send("sync:settings-applied", settings);
   });
-  await syncServer.start();
+  try {
+    await syncServer.start();
+  } catch (error) {
+    console.warn("Could not start Focus Timer sync server:", error);
+  }
 
   registerIpcHandlers(windowManager, settingsStore, shortcutManager, syncServer);
   windowManager.createWindow();
