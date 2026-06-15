@@ -51,6 +51,7 @@ export const defaultSettings: AppSettings = {
     targetMinutes: 270,
     startDate: null,
     completedDates: [],
+    failedDates: [],
   },
 };
 
@@ -127,12 +128,22 @@ function normalizeDailyPlan(value: unknown): DailyPlanSettings {
 
   const plan = value as Partial<DailyPlanSettings>;
   const startDate = isDateKey(plan.startDate) ? plan.startDate : null;
-  const completedDates = startDate && Array.isArray(plan.completedDates)
+  const completedDates = Array.isArray(plan.completedDates)
     ? Array.from(
         new Set(
           plan.completedDates.filter(
+            (date): date is string => isDateKey(date),
+          ),
+        ),
+      ).sort()
+    : [];
+  const completedDateSet = new Set(completedDates);
+  const failedDates = Array.isArray(plan.failedDates)
+    ? Array.from(
+        new Set(
+          plan.failedDates.filter(
             (date): date is string =>
-              isDateKey(date) && date >= startDate,
+              isDateKey(date) && !completedDateSet.has(date),
           ),
         ),
       ).sort()
@@ -150,6 +161,7 @@ function normalizeDailyPlan(value: unknown): DailyPlanSettings {
         : defaultSettings.dailyPlan.targetMinutes,
     startDate,
     completedDates,
+    failedDates,
   };
 }
 

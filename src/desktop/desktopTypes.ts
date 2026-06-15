@@ -56,6 +56,7 @@ export type DailyPlanSettings = {
   targetMinutes: number;
   startDate: string | null;
   completedDates: string[];
+  failedDates: string[];
 };
 
 export type AppSettings = {

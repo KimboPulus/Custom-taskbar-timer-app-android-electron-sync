@@ -24,12 +24,16 @@ export function getDailyPlanDayStatus(
   plan: DailyPlanSettings,
   todayKey = getLocalDateKey(),
 ): DailyPlanDayStatus {
-  if (!plan.startDate || dateKey < plan.startDate) {
-    return "inactive";
-  }
-
   if (plan.completedDates.includes(dateKey)) {
     return "completed";
+  }
+
+  if (plan.failedDates.includes(dateKey)) {
+    return "failed";
+  }
+
+  if (!plan.startDate || dateKey < plan.startDate) {
+    return "inactive";
   }
 
   if (dateKey < todayKey) {
@@ -84,12 +88,34 @@ export function getCurrentDailyPlanStreak(
     : getPreviousDateKey(todayKey);
   let streak = 0;
 
-  while (cursor >= plan.startDate && completedDates.has(cursor)) {
+  while (completedDates.has(cursor)) {
     streak += 1;
     cursor = getPreviousDateKey(cursor);
   }
 
   return streak;
+}
+
+export function togglePastDailyPlanDate(
+  plan: DailyPlanSettings,
+  dateKey: string,
+): DailyPlanSettings {
+  const completedDates = new Set(plan.completedDates);
+  const failedDates = new Set(plan.failedDates);
+
+  if (completedDates.has(dateKey)) {
+    completedDates.delete(dateKey);
+    failedDates.add(dateKey);
+  } else {
+    failedDates.delete(dateKey);
+    completedDates.add(dateKey);
+  }
+
+  return {
+    ...plan,
+    completedDates: [...completedDates].sort(),
+    failedDates: [...failedDates].sort(),
+  };
 }
 
 export function formatDailyTarget(targetMinutes: number): string {

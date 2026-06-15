@@ -5,6 +5,7 @@ import {
   getDailyPlanDayStatus,
   getDailyPlanYearStats,
   getLocalDateKey,
+  togglePastDailyPlanDate,
 } from "../dailyPlan/dailyPlan";
 import type { DailyPlanSettings } from "../desktop/desktopTypes";
 import { FlameIcon } from "./icons";
@@ -109,9 +110,11 @@ export function DailyPlanPanel({
     }
 
     const completedDates = new Set(plan.completedDates);
+    const failedDates = new Set(plan.failedDates);
     if (todayStatus === "completed") {
       completedDates.delete(todayKey);
     } else {
+      failedDates.delete(todayKey);
       completedDates.add(todayKey);
     }
 
@@ -119,6 +122,7 @@ export function DailyPlanPanel({
     await onSave({
       ...plan,
       completedDates: [...completedDates].sort(),
+      failedDates: [...failedDates].sort(),
     });
     setSaving(false);
   };
@@ -126,25 +130,13 @@ export function DailyPlanPanel({
   const togglePastDate = async (dateKey: string) => {
     if (
       !configured ||
-      !plan.startDate ||
-      dateKey < plan.startDate ||
       dateKey >= todayKey
     ) {
       return;
     }
 
-    const completedDates = new Set(plan.completedDates);
-    if (completedDates.has(dateKey)) {
-      completedDates.delete(dateKey);
-    } else {
-      completedDates.add(dateKey);
-    }
-
     setSaving(true);
-    await onSave({
-      ...plan,
-      completedDates: [...completedDates].sort(),
-    });
+    await onSave(togglePastDailyPlanDate(plan, dateKey));
     setSaving(false);
   };
 
@@ -343,8 +335,6 @@ export function DailyPlanPanel({
                     const isToday = dateKey === todayKey;
                     const editable =
                       configured &&
-                      plan.startDate !== null &&
-                      dateKey >= plan.startDate &&
                       dateKey < todayKey;
                     const nextStatus =
                       status === "completed" ? "failed" : "successful";

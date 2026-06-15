@@ -57,6 +57,7 @@ const fallbackSettings: AppSettings = {
     targetMinutes: 270,
     startDate: null,
     completedDates: [],
+    failedDates: [],
   },
 };
 
