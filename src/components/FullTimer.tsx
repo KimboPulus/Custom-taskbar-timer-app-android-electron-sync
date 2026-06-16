@@ -73,7 +73,11 @@ export function FullTimer({
               className="icon-text-button"
               type="button"
               onClick={onEnterCompact}
-              title="Compact mode (Ctrl+Alt+T)"
+              title={
+                settings.taskbarModeEnabled
+                  ? "Taskbar timer mode (Ctrl+Alt+T)"
+                  : "Compact mode (Ctrl+Alt+T)"
+              }
             >
               <CompactIcon />
               Compact

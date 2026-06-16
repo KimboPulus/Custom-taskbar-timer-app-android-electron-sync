@@ -278,7 +278,7 @@ export default function App() {
           onDurationChange={selectDuration}
           onAddCustomPreset={addCustomPreset}
           onDeletePreset={deletePreset}
-          onEnterCompact={() => void applyWindowMode("compact")}
+          onEnterCompact={() => void cycleWindowMode()}
           onOpenSettings={() => {
             setDailyPlanOpen(false);
             setSettingsOpen(true);
