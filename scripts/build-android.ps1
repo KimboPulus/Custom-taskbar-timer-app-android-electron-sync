@@ -12,6 +12,15 @@ Push-Location $repoRoot
 try {
     & "D:\Tools\Node\node-22\npx.cmd" tsc --noEmit
     & "D:\Tools\Node\node-22\npm.cmd" test -- --runInBand
+
+    New-Item -ItemType Directory -Force -Path ".\android\app\src\main\assets" | Out-Null
+    & "D:\Tools\Node\node-22\npx.cmd" react-native bundle `
+        --platform android `
+        --dev false `
+        --entry-file index.js `
+        --bundle-output android/app/src/main/assets/index.android.bundle `
+        --assets-dest android/app/src/main/res
+
     & ".\android\gradlew.bat" -p android :app:assembleDebug
 
     $artifactDir = "D:\FocusTimerReactNative\artifacts"
@@ -26,4 +35,3 @@ try {
 finally {
     Pop-Location
 }
-
