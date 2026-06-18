@@ -1,0 +1,21 @@
+.app-shell--taskbar {
+  border-color: color-mix(in srgb, var(--teal) 24%, var(--line));
+  background: color-mix(in srgb, var(--surface) 88%, var(--bg));
+}
+
+.taskbar-layout {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  place-items: center;
+  padding: 0 8px;
+  overflow: hidden;
+  user-select: none;
+}
+
+.taskbar-time {
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.025em;
+  white-space: nowrap;
+}

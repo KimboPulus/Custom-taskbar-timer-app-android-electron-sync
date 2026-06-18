@@ -1,0 +1,95 @@
+.app-shell--compact {
+  border-color: color-mix(in srgb, var(--teal) 18%, var(--line));
+  border-radius: 10px;
+}
+
+.app-shell--compact .window-button {
+  width: 37px;
+}
+
+.compact-layout {
+  display: flex;
+  height: calc(100% - 31px);
+  flex-direction: column;
+  padding: 12px 13px 11px;
+}
+
+.compact-timer-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.timer-display--compact {
+  width: 172px;
+  padding: 2px 4px 4px;
+  font-size: 31px;
+  font-weight: 670;
+}
+
+.timer-display__input.timer-display--compact {
+  border-width: 1px;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--teal) 14%, transparent);
+}
+
+.compact-expand {
+  width: 30px;
+  height: 30px;
+  flex: 0 0 auto;
+  border-radius: 9px;
+  color: var(--muted);
+  background: var(--surface-soft);
+}
+
+.compact-expand:hover {
+  color: var(--teal-dark);
+}
+
+.compact-progress {
+  height: 4px;
+  margin-top: 11px;
+  overflow: hidden;
+  border-radius: 4px;
+  background: var(--surface-soft);
+}
+
+.compact-progress span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--teal);
+  transition: width 180ms linear;
+}
+
+.compact-footer {
+  display: flex;
+  flex: 1;
+  align-items: flex-end;
+  justify-content: space-between;
+}
+
+.compact-status {
+  padding-bottom: 7px;
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 750;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.timer-controls--compact {
+  gap: 7px;
+  margin: 0;
+}
+
+.timer-controls--compact .control-button--secondary {
+  width: 32px;
+  height: 32px;
+}
+
+.timer-controls--compact .control-button--primary {
+  width: 38px;
+  height: 38px;
+  box-shadow: 0 6px 16px color-mix(in srgb, var(--teal) 24%, transparent);
+}
