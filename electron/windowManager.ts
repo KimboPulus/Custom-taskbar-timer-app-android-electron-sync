@@ -223,6 +223,18 @@ export class WindowManager {
     this.window?.minimize();
   }
 
+  showExistingWindow(): void {
+    if (!this.window) {
+      return;
+    }
+
+    if (this.window.isMinimized()) {
+      this.window.restore();
+    }
+    this.window.show();
+    this.window.focus();
+  }
+
   toggleMaximize(): boolean {
     if (!this.window || this.mode !== "full") {
       return false;
