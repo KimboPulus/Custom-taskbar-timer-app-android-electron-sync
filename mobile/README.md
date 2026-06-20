@@ -1,7 +1,14 @@
 # Focus Timer Mobile React Native
 
 React Native + TypeScript Android companion for the existing Electron Focus Timer app.
-The app code is TypeScript/React Native, and the small Android host shell is Java.
+The UI stays in React Native. Shared app logic is being moved into Kotlin
+Multiplatform under `android/shared`, with Android as the only active target for
+now.
+
+No iOS files or iOS build targets are configured yet. The point of the KMP module
+is to make a later iOS port easier: add an iOS target to `android/shared`, expose
+the same common logic through a small iOS React Native bridge, and keep the UI
+mostly in React Native.
 
 The Electron desktop app is the sync host. When it launches, it exposes:
 
@@ -16,8 +23,9 @@ No Firebase, no cloud sync, no third-party service.
 ## Paths
 
 ```text
-D:\Visual Studio projects\focus-timer-mobile-rn
-D:\FocusTimerReactNative\artifacts\FocusTimer-RN-debug.apk
+D:\Visual Studio projects\Custom-taskbar-timer-app-android-electron-sync\mobile
+D:\ftrepo
+D:\Visual Studio projects\Custom-taskbar-timer-app-android-electron-sync\mobile\android\app\build\outputs\apk\debug\app-debug.apk
 ```
 
 Tooling used:
@@ -36,6 +44,11 @@ D:\npm-cache
 .\scripts\build-android.ps1
 ```
 
+The script creates `D:\ftrepo` as a junction to this repo and builds through that
+short path. React Native 0.86 uses native codegen/CMake on Android, and building
+from the long `D:\Visual Studio projects\...` path can hit Windows/Ninja path
+limits.
+
 ## Install On Connected Phone
 
 ```powershell
@@ -45,7 +58,7 @@ D:\npm-cache
 Or manually:
 
 ```powershell
-D:\Android\Sdk\platform-tools\adb.exe install -r "D:\FocusTimerReactNative\artifacts\FocusTimer-RN-debug.apk"
+adb install -r "D:\Visual Studio projects\Custom-taskbar-timer-app-android-electron-sync\mobile\artifacts\FocusTimer-RN-debug.apk"
 ```
 
 ## Use

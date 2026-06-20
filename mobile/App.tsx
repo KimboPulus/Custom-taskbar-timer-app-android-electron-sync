@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {
   AppState,
+  NativeModules,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -70,12 +71,35 @@ type SyncPushResponse = {
   snapshot: SyncSnapshot;
 };
 
+type FocusTimerSharedCapabilities = {
+  logic: string;
+  activeTarget: string;
+  iosTargetConfigured: boolean;
+};
+
+type FocusTimerSharedNative = {
+  formatDuration: (milliseconds: number) => Promise<string>;
+  normalizeServerUrl: (value: string) => Promise<string>;
+  isDateKey: (value: string) => Promise<boolean>;
+  nextManualDailyPlanStatus: (
+    currentStatus: DailyPlanStatus | null,
+  ) => Promise<DailyPlanStatus>;
+  calculateStreak: (
+    todayKey: string,
+    completedDates: string[],
+  ) => Promise<number>;
+  getCapabilities: () => Promise<FocusTimerSharedCapabilities>;
+};
+
 const snapshotKey = 'focus-timer:snapshot';
 const knownVersionKey = 'focus-timer:known-version';
 const deviceIdKey = 'focus-timer:device-id';
 const serverUrlKey = 'focus-timer:server-url';
 const defaultServerUrl = 'http://10.0.2.2:5278';
 const defaultDurationMs = 25 * 60 * 1000;
+const focusTimerShared = NativeModules.FocusTimerShared as
+  | FocusTimerSharedNative
+  | undefined;
 
 function nowIso(): string {
   return new Date().toISOString();
@@ -176,6 +200,41 @@ function isDateKey(value: string): boolean {
   return !Number.isNaN(parsed.getTime()) && localDateKey(parsed) === value;
 }
 
+async function formatDurationShared(milliseconds: number): Promise<string> {
+  return focusTimerShared?.formatDuration(milliseconds) ?? formatDuration(milliseconds);
+}
+
+async function normalizeServerUrlShared(value: string): Promise<string> {
+  return focusTimerShared?.normalizeServerUrl(value) ?? normalizeServerUrl(value);
+}
+
+async function isDateKeyShared(value: string): Promise<boolean> {
+  return focusTimerShared?.isDateKey(value) ?? isDateKey(value);
+}
+
+async function nextManualDailyPlanStatusShared(
+  currentStatus: DailyPlanStatus | null,
+): Promise<DailyPlanStatus> {
+  return (
+    focusTimerShared?.nextManualDailyPlanStatus(currentStatus) ??
+    (currentStatus === 'Completed'
+      ? 'Failed'
+      : currentStatus === 'Failed'
+        ? 'Neutral'
+        : 'Completed')
+  );
+}
+
+async function calculateStreakShared(plan: DailyPlanSyncState): Promise<number> {
+  const completedDates = plan.dates
+    .filter(day => day.status === 'Completed')
+    .map(day => day.date);
+  return (
+    focusTimerShared?.calculateStreak(localDateKey(), completedDates) ??
+    calculateStreak(plan)
+  );
+}
+
 export default function App() {
   const [ready, setReady] = useState(false);
   const [deviceId, setDeviceId] = useState('');
@@ -189,6 +248,9 @@ export default function App() {
   const [targetMinutes, setTargetMinutes] = useState('270');
   const [selectedDate, setSelectedDate] = useState(localDateKey());
   const [now, setNow] = useState(Date.now());
+  const [timerText, setTimerText] = useState(formatDuration(defaultDurationMs));
+  const [streak, setStreak] = useState(0);
+  const [logicLayer, setLogicLayer] = useState('React Native UI + JS fallback');
   const syncInFlight = useRef(false);
 
   const persist = useCallback(
@@ -248,6 +310,18 @@ export default function App() {
     return () => clearInterval(interval);
   }, []);
 
+  useEffect(() => {
+    if (!focusTimerShared) {
+      return;
+    }
+
+    void focusTimerShared.getCapabilities().then(capabilities => {
+      setLogicLayer(
+        `${capabilities.logic} core on ${capabilities.activeTarget}`,
+      );
+    });
+  }, []);
+
   const syncNow = useCallback(
     async (auto = false) => {
       if (!ready || syncInFlight.current) {
@@ -255,7 +329,7 @@ export default function App() {
       }
 
       syncInFlight.current = true;
-      const baseUrl = normalizeServerUrl(serverUrl);
+      const baseUrl = await normalizeServerUrlShared(serverUrl);
       setServerUrl(baseUrl);
       await AsyncStorage.setItem(serverUrlKey, baseUrl);
       setSyncStatus(auto ? 'Auto syncing...' : 'Syncing...');
@@ -334,6 +408,32 @@ export default function App() {
   }, [now, snapshot.timer]);
 
   useEffect(() => {
+    let alive = true;
+    void formatDurationShared(remainingMs).then(text => {
+      if (alive) {
+        setTimerText(text);
+      }
+    });
+
+    return () => {
+      alive = false;
+    };
+  }, [remainingMs]);
+
+  useEffect(() => {
+    let alive = true;
+    void calculateStreakShared(snapshot.dailyPlan).then(nextStreak => {
+      if (alive) {
+        setStreak(nextStreak);
+      }
+    });
+
+    return () => {
+      alive = false;
+    };
+  }, [snapshot.dailyPlan]);
+
+  useEffect(() => {
     if (snapshot.timer.status === 'Running' && remainingMs === 0) {
       updateSnapshot(draft => {
         draft.timer.status = 'Finished';
@@ -393,8 +493,8 @@ export default function App() {
     });
   };
 
-  const setDayStatus = (date: string, status: DailyPlanStatus) => {
-    if (!isDateKey(date)) {
+  const setDayStatus = async (date: string, status: DailyPlanStatus) => {
+    if (!(await isDateKeyShared(date))) {
       setSelectedDate(localDateKey());
       return;
     }
@@ -418,6 +518,13 @@ export default function App() {
 
   const selectedDay = snapshot.dailyPlan.dates.find(day => day.date === selectedDate);
 
+  const cycleSelectedDate = async () => {
+    const nextStatus = await nextManualDailyPlanStatusShared(
+      selectedDay?.status ?? null,
+    );
+    await setDayStatus(selectedDate.trim(), nextStatus);
+  };
+
   if (!ready) {
     return (
       <SafeAreaView style={styles.safeArea}>
@@ -435,6 +542,7 @@ export default function App() {
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.title}>Focus Timer</Text>
         <Text style={styles.subtitle}>React Native companion for your Electron timer</Text>
+        <Text style={styles.logicLayer}>{logicLayer}</Text>
 
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Sync server</Text>
@@ -453,7 +561,7 @@ export default function App() {
         </View>
 
         <View style={[styles.card, styles.timerCard]}>
-          <Text style={styles.timer}>{formatDuration(remainingMs)}</Text>
+          <Text style={styles.timer}>{timerText}</Text>
           <Text style={styles.timerStatus}>{snapshot.timer.status.toUpperCase()}</Text>
           <View style={styles.centerRow}>
             <ButtonLabel
@@ -468,7 +576,7 @@ export default function App() {
         <View style={styles.card}>
           <View style={styles.planHeader}>
             <Text style={styles.cardTitle}>Daily plan</Text>
-            <Text style={styles.streak}>Streak: {calculateStreak(snapshot.dailyPlan)}</Text>
+            <Text style={styles.streak}>Streak: {streak}</Text>
           </View>
           <TextInput value={planTitle} onChangeText={setPlanTitle} style={styles.input} />
           <TextInput
@@ -482,12 +590,12 @@ export default function App() {
           <View style={styles.row}>
             <ButtonLabel
               text="Today done"
-              onPress={() => setDayStatus(localDateKey(), 'Completed')}
+              onPress={() => void setDayStatus(localDateKey(), 'Completed')}
               primary
             />
             <ButtonLabel
               text="Today failed"
-              onPress={() => setDayStatus(localDateKey(), 'Failed')}
+              onPress={() => void setDayStatus(localDateKey(), 'Failed')}
             />
           </View>
 
@@ -496,16 +604,20 @@ export default function App() {
           <View style={styles.row}>
             <ButtonLabel
               text="Set done"
-              onPress={() => setDayStatus(selectedDate.trim(), 'Completed')}
+              onPress={() => void setDayStatus(selectedDate.trim(), 'Completed')}
               primary
             />
             <ButtonLabel
               text="Set failed"
-              onPress={() => setDayStatus(selectedDate.trim(), 'Failed')}
+              onPress={() => void setDayStatus(selectedDate.trim(), 'Failed')}
             />
             <ButtonLabel
               text="Set neutral"
-              onPress={() => setDayStatus(selectedDate.trim(), 'Neutral')}
+              onPress={() => void setDayStatus(selectedDate.trim(), 'Neutral')}
+            />
+            <ButtonLabel
+              text="Cycle"
+              onPress={() => void cycleSelectedDate()}
             />
           </View>
           <Text style={styles.syncText}>
@@ -560,6 +672,12 @@ const styles = StyleSheet.create({
     color: '#52706D',
     fontSize: 14,
     marginBottom: 4,
+  },
+  logicLayer: {
+    color: '#6A7A78',
+    fontSize: 12,
+    fontWeight: '700',
+    marginTop: -6,
   },
   card: {
     backgroundColor: '#FFFFFF',

@@ -7,6 +7,7 @@ import com.facebook.react.ReactHost;
 import com.facebook.react.ReactNativeApplicationEntryPoint;
 import com.facebook.react.ReactPackage;
 import com.facebook.react.defaults.DefaultReactHost;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import kotlin.Unit;
@@ -18,7 +19,8 @@ public class MainApplication extends Application implements ReactApplication {
   @Override
   public ReactHost getReactHost() {
     if (reactHost == null) {
-      List<ReactPackage> packages = new PackageList(this).getPackages();
+      List<ReactPackage> packages = new ArrayList<>(new PackageList(this).getPackages());
+      packages.add(new FocusTimerSharedPackage());
       Function1<Exception, Unit> exceptionHandler =
           error -> {
             throw new RuntimeException(error);

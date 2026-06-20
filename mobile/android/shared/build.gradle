@@ -1,0 +1,27 @@
+apply plugin: "com.android.library"
+apply plugin: "org.jetbrains.kotlin.multiplatform"
+
+kotlin {
+    androidTarget()
+
+    sourceSets {
+        commonMain {
+            dependencies {
+            }
+        }
+        commonTest {
+            dependencies {
+                implementation kotlin("test")
+            }
+        }
+    }
+}
+
+android {
+    namespace "com.focustimermobile.shared"
+    compileSdk rootProject.ext.compileSdkVersion
+
+    defaultConfig {
+        minSdkVersion rootProject.ext.minSdkVersion
+    }
+}
