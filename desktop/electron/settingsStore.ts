@@ -32,6 +32,8 @@ export const defaultSettings: AppSettings = {
   taskbarModeEnabled: true,
   compactPosition: null,
   soundEnabled: true,
+  pauseSoundEnabled: true,
+  resumeSoundEnabled: true,
   alarmSound: {
     kind: "built-in",
     id: "gentle-chime",
@@ -52,6 +54,7 @@ export const defaultSettings: AppSettings = {
     startDate: null,
     completedDates: [],
     failedDates: [],
+    neutralDates: [],
   },
 };
 
@@ -148,6 +151,19 @@ function normalizeDailyPlan(value: unknown): DailyPlanSettings {
         ),
       ).sort()
     : [];
+  const failedDateSet = new Set(failedDates);
+  const neutralDates = Array.isArray(plan.neutralDates)
+    ? Array.from(
+        new Set(
+          plan.neutralDates.filter(
+            (date): date is string =>
+              isDateKey(date) &&
+              !completedDateSet.has(date) &&
+              !failedDateSet.has(date),
+          ),
+        ),
+      ).sort()
+    : [];
 
   return {
     title:
@@ -162,6 +178,7 @@ function normalizeDailyPlan(value: unknown): DailyPlanSettings {
     startDate,
     completedDates,
     failedDates,
+    neutralDates,
   };
 }
 
@@ -263,6 +280,16 @@ export class SettingsStore {
         alarmVolume: Number.isFinite(stored.alarmVolume)
           ? Math.min(1, Math.max(0, stored.alarmVolume as number))
           : defaultSettings.alarmVolume,
+        pauseSoundEnabled:
+          typeof stored.pauseSoundEnabled === "boolean"
+            ? stored.pauseSoundEnabled
+            : defaultSettings.pauseSoundEnabled,
+        resumeSoundEnabled:
+          typeof stored.resumeSoundEnabled === "boolean"
+            ? stored.resumeSoundEnabled
+            : typeof stored.pauseSoundEnabled === "boolean"
+              ? stored.pauseSoundEnabled
+              : defaultSettings.resumeSoundEnabled,
         shortcutLabels: {
           ...defaultSettings.shortcutLabels,
           ...stored.shortcutLabels,

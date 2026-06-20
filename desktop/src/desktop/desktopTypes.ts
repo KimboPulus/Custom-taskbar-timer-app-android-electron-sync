@@ -57,6 +57,7 @@ export type DailyPlanSettings = {
   startDate: string | null;
   completedDates: string[];
   failedDates: string[];
+  neutralDates: string[];
 };
 
 export type AppSettings = {
@@ -67,6 +68,8 @@ export type AppSettings = {
   taskbarModeEnabled: boolean;
   compactPosition: CompactPosition | null;
   soundEnabled: boolean;
+  pauseSoundEnabled: boolean;
+  resumeSoundEnabled: boolean;
   alarmSound: AlarmSound;
   alarmVolume: number;
   theme: ThemePreference;

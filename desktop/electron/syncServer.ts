@@ -10,7 +10,7 @@ import type {
 import type { SettingsStore } from "./settingsStore.js";
 
 type SyncTimerStatus = "Idle" | "Running" | "Paused" | "Finished";
-type SyncDailyPlanStatus = "Completed" | "Failed";
+type SyncDailyPlanStatus = "Completed" | "Failed" | "Neutral";
 
 type SyncTimerState = {
   durationMs: number;
@@ -46,6 +46,8 @@ type SyncFocusPresetItem = {
 
 type SyncAppSettings = {
   soundEnabled: boolean;
+  pauseSoundEnabled?: boolean;
+  resumeSoundEnabled?: boolean;
   alarmVolume: number;
   modifiedAt: string;
   modifiedBy: string;
@@ -244,7 +246,12 @@ export class SyncServer {
       this.meta.focusPresetsModifiedAt = modifiedAt;
       changed = true;
     }
-    if (patch.soundEnabled !== undefined || patch.alarmVolume !== undefined) {
+    if (
+      patch.soundEnabled !== undefined ||
+      patch.pauseSoundEnabled !== undefined ||
+      patch.resumeSoundEnabled !== undefined ||
+      patch.alarmVolume !== undefined
+    ) {
       this.meta.appSettingsModifiedAt = modifiedAt;
       changed = true;
     }
@@ -338,6 +345,8 @@ export class SyncServer {
       })),
       settings: {
         soundEnabled: settings.soundEnabled,
+        pauseSoundEnabled: settings.pauseSoundEnabled,
+        resumeSoundEnabled: settings.resumeSoundEnabled,
         alarmVolume: settings.alarmVolume,
         modifiedAt: this.meta.appSettingsModifiedAt,
         modifiedBy: syncDeviceId,
@@ -356,6 +365,12 @@ export class SyncServer {
       ...plan.failedDates.map((date) => ({
         date,
         status: "Failed" as const,
+        modifiedAt: this.meta.dailyPlanModifiedAt,
+        modifiedBy: syncDeviceId,
+      })),
+      ...plan.neutralDates.map((date) => ({
+        date,
+        status: "Neutral" as const,
         modifiedAt: this.meta.dailyPlanModifiedAt,
         modifiedBy: syncDeviceId,
       })),
@@ -409,6 +424,12 @@ export class SyncServer {
       isRemoteNewer(request.settings.modifiedAt, this.meta.appSettingsModifiedAt)
     ) {
       patch.soundEnabled = request.settings.soundEnabled;
+      if (typeof request.settings.pauseSoundEnabled === "boolean") {
+        patch.pauseSoundEnabled = request.settings.pauseSoundEnabled;
+      }
+      if (typeof request.settings.resumeSoundEnabled === "boolean") {
+        patch.resumeSoundEnabled = request.settings.resumeSoundEnabled;
+      }
       patch.alarmVolume = request.settings.alarmVolume;
       this.meta.appSettingsModifiedAt = request.settings.modifiedAt;
       changed = true;
@@ -446,14 +467,21 @@ export class SyncServer {
   private fromSyncDailyPlan(plan: SyncDailyPlanState): DailyPlanSettings {
     const completedDates = new Set<string>();
     const failedDates = new Set<string>();
+    const neutralDates = new Set<string>();
 
     for (const day of plan.dates) {
       if (day.status === "Completed") {
         completedDates.add(day.date);
         failedDates.delete(day.date);
-      } else {
+        neutralDates.delete(day.date);
+      } else if (day.status === "Failed") {
         failedDates.add(day.date);
         completedDates.delete(day.date);
+        neutralDates.delete(day.date);
+      } else {
+        completedDates.delete(day.date);
+        failedDates.delete(day.date);
+        neutralDates.add(day.date);
       }
     }
 
@@ -463,6 +491,7 @@ export class SyncServer {
       startDate: plan.startDate,
       completedDates: [...completedDates].sort(),
       failedDates: [...failedDates].sort(),
+      neutralDates: [...neutralDates].sort(),
     };
   }
 

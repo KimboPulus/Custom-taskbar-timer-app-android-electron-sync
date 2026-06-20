@@ -15,6 +15,7 @@ const plan: DailyPlanSettings = {
   startDate: "2026-06-10",
   completedDates: ["2026-06-10", "2026-06-12", "2026-06-14"],
   failedDates: [],
+  neutralDates: [],
 };
 
 describe("daily plan", () => {
@@ -23,14 +24,21 @@ describe("daily plan", () => {
   });
 
   it("distinguishes completed, failed, pending, and untracked days", () => {
+    const neutralPlan: DailyPlanSettings = {
+      ...plan,
+      neutralDates: ["2026-06-11"],
+    };
+
     expect(getDailyPlanDayStatus("2026-06-09", plan, "2026-06-14")).toBe(
       "inactive",
     );
     expect(getDailyPlanDayStatus("2026-06-10", plan, "2026-06-14")).toBe(
       "completed",
     );
-    expect(getDailyPlanDayStatus("2026-06-11", plan, "2026-06-14")).toBe(
-      "failed",
+    expect(
+      getDailyPlanDayStatus("2026-06-11", neutralPlan, "2026-06-14"),
+    ).toBe(
+      "neutral",
     );
     expect(getDailyPlanDayStatus("2026-06-14", plan, "2026-06-14")).toBe(
       "completed",
@@ -53,6 +61,7 @@ describe("daily plan", () => {
       startDate: "2026-06-14",
       completedDates: [],
       failedDates: [],
+      neutralDates: [],
     };
 
     const completedOldDate = togglePastDailyPlanDate(
@@ -82,6 +91,28 @@ describe("daily plan", () => {
       getDailyPlanDayStatus("2026-06-10", failedOldDate, "2026-06-15"),
     ).toBe("failed");
     expect(failedOldDate.startDate).toBe("2026-06-14");
+  });
+
+  it("cycles manually edited past dates through success, failure, and neutral", () => {
+    const completedDate = togglePastDailyPlanDate(plan, "2026-06-11");
+    expect(
+      getDailyPlanDayStatus("2026-06-11", completedDate, "2026-06-14"),
+    ).toBe("completed");
+
+    const failedDate = togglePastDailyPlanDate(completedDate, "2026-06-11");
+    expect(
+      getDailyPlanDayStatus("2026-06-11", failedDate, "2026-06-14"),
+    ).toBe("failed");
+
+    const neutralDate = togglePastDailyPlanDate(failedDate, "2026-06-11");
+    expect(
+      getDailyPlanDayStatus("2026-06-11", neutralDate, "2026-06-14"),
+    ).toBe("neutral");
+
+    const completedAgain = togglePastDailyPlanDate(neutralDate, "2026-06-11");
+    expect(
+      getDailyPlanDayStatus("2026-06-11", completedAgain, "2026-06-14"),
+    ).toBe("completed");
   });
 
   it("counts a streak through today when today is complete", () => {

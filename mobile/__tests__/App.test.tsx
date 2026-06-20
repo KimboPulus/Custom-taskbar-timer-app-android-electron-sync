@@ -7,7 +7,6 @@ import ReactTestRenderer from 'react-test-renderer';
 import App from '../App';
 
 test('renders correctly', async () => {
-  jest.useFakeTimers();
   globalThis.fetch = jest.fn(async () => ({
     ok: false,
     status: 503,
@@ -18,11 +17,11 @@ test('renders correctly', async () => {
   await ReactTestRenderer.act(async () => {
     tree = ReactTestRenderer.create(<App />);
     await Promise.resolve();
+    await Promise.resolve();
   });
+  expect(tree?.toJSON()).toBeTruthy();
 
   await ReactTestRenderer.act(async () => {
     tree?.unmount();
   });
-  jest.clearAllTimers();
-  jest.useRealTimers();
-});
+}, 15000);

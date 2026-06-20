@@ -4,8 +4,11 @@ export type DailyPlanDayStatus =
   | "inactive"
   | "completed"
   | "failed"
+  | "neutral"
   | "pending"
   | "upcoming";
+
+export type ManualDailyPlanDayStatus = "completed" | "failed" | "neutral";
 
 export type DailyPlanYearStats = {
   completed: number;
@@ -30,6 +33,10 @@ export function getDailyPlanDayStatus(
 
   if (plan.failedDates.includes(dateKey)) {
     return "failed";
+  }
+
+  if (plan.neutralDates.includes(dateKey)) {
+    return "neutral";
   }
 
   if (!plan.startDate || dateKey < plan.startDate) {
@@ -102,20 +109,42 @@ export function togglePastDailyPlanDate(
 ): DailyPlanSettings {
   const completedDates = new Set(plan.completedDates);
   const failedDates = new Set(plan.failedDates);
+  const neutralDates = new Set(plan.neutralDates);
+  const nextStatus = getNextPastDailyPlanStatus(plan, dateKey);
 
-  if (completedDates.has(dateKey)) {
-    completedDates.delete(dateKey);
+  completedDates.delete(dateKey);
+  failedDates.delete(dateKey);
+  neutralDates.delete(dateKey);
+
+  if (nextStatus === "completed") {
+    completedDates.add(dateKey);
+  } else if (nextStatus === "failed") {
     failedDates.add(dateKey);
   } else {
-    failedDates.delete(dateKey);
-    completedDates.add(dateKey);
+    neutralDates.add(dateKey);
   }
 
   return {
     ...plan,
     completedDates: [...completedDates].sort(),
     failedDates: [...failedDates].sort(),
+    neutralDates: [...neutralDates].sort(),
   };
+}
+
+export function getNextPastDailyPlanStatus(
+  plan: DailyPlanSettings,
+  dateKey: string,
+): ManualDailyPlanDayStatus {
+  if (plan.completedDates.includes(dateKey)) {
+    return "failed";
+  }
+
+  if (plan.failedDates.includes(dateKey)) {
+    return "neutral";
+  }
+
+  return "completed";
 }
 
 export function formatDailyTarget(targetMinutes: number): string {

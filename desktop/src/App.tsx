@@ -10,7 +10,7 @@ import { FullTimer } from "./components/FullTimer";
 import { SettingsPanel } from "./components/SettingsPanel";
 import { TaskbarTimer } from "./components/TaskbarTimer";
 import { WindowChrome } from "./components/WindowChrome";
-import { playAlarm } from "./desktop/alarmPlayer";
+import { playAlarm, playTimerClick } from "./desktop/alarmPlayer";
 import { electronApi } from "./desktop/electronApi";
 import type {
   AppSettings,
@@ -38,6 +38,8 @@ const fallbackSettings: AppSettings = {
   taskbarModeEnabled: true,
   compactPosition: null,
   soundEnabled: true,
+  pauseSoundEnabled: true,
+  resumeSoundEnabled: true,
   alarmSound: {
     kind: "built-in",
     id: "gentle-chime",
@@ -58,6 +60,7 @@ const fallbackSettings: AppSettings = {
     startDate: null,
     completedDates: [],
     failedDates: [],
+    neutralDates: [],
   },
 };
 
@@ -161,10 +164,26 @@ export default function App() {
       }
       electronApi.notifyTimerFinished();
     }
+    if (
+      timer.state.status === "paused" &&
+      previousStatus.current === "running" &&
+      settings.pauseSoundEnabled
+    ) {
+      playTimerClick("pause");
+    }
+    if (
+      timer.state.status === "running" &&
+      previousStatus.current === "paused" &&
+      settings.resumeSoundEnabled
+    ) {
+      playTimerClick("resume");
+    }
     previousStatus.current = timer.state.status;
   }, [
     settings.alarmSound,
     settings.alarmVolume,
+    settings.pauseSoundEnabled,
+    settings.resumeSoundEnabled,
     settings.soundEnabled,
     timer.state.status,
   ]);

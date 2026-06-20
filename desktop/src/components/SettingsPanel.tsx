@@ -169,6 +169,40 @@ export function SettingsPanel({
           </label>
         </div>
 
+        <div className="setting-row">
+          <div>
+            <strong>Pause click</strong>
+            <p>Play a short built-in click when the running timer is paused.</p>
+          </div>
+          <label className="switch">
+            <input
+              type="checkbox"
+              checked={settings.pauseSoundEnabled}
+              onChange={(event) =>
+                void onSave({ pauseSoundEnabled: event.target.checked })
+              }
+            />
+            <span />
+          </label>
+        </div>
+
+        <div className="setting-row">
+          <div>
+            <strong>Resume click</strong>
+            <p>Play a separate short click when a paused timer resumes.</p>
+          </div>
+          <label className="switch">
+            <input
+              type="checkbox"
+              checked={settings.resumeSoundEnabled}
+              onChange={(event) =>
+                void onSave({ resumeSoundEnabled: event.target.checked })
+              }
+            />
+            <span />
+          </label>
+        </div>
+
         <div className="setting-block alarm-settings">
           <label htmlFor="alarm-sound">Alarm sound</label>
           <select

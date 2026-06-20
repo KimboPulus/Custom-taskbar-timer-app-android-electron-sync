@@ -5,6 +5,7 @@ import {
   getDailyPlanDayStatus,
   getDailyPlanYearStats,
   getLocalDateKey,
+  getNextPastDailyPlanStatus,
   togglePastDailyPlanDate,
 } from "../dailyPlan/dailyPlan";
 import type { DailyPlanSettings } from "../desktop/desktopTypes";
@@ -111,10 +112,12 @@ export function DailyPlanPanel({
 
     const completedDates = new Set(plan.completedDates);
     const failedDates = new Set(plan.failedDates);
+    const neutralDates = new Set(plan.neutralDates);
     if (todayStatus === "completed") {
       completedDates.delete(todayKey);
     } else {
       failedDates.delete(todayKey);
+      neutralDates.delete(todayKey);
       completedDates.add(todayKey);
     }
 
@@ -123,6 +126,7 @@ export function DailyPlanPanel({
       ...plan,
       completedDates: [...completedDates].sort(),
       failedDates: [...failedDates].sort(),
+      neutralDates: [...neutralDates].sort(),
     });
     setSaving(false);
   };
@@ -299,9 +303,10 @@ export function DailyPlanPanel({
           <div className="daily-plan-legend" aria-label="Calendar legend">
             <span className="daily-plan-legend__success">Successful</span>
             <span className="daily-plan-legend__failed">Failed</span>
+            <span className="daily-plan-legend__neutral">Neutral</span>
             <span className="daily-plan-legend__pending">Today</span>
             <span className="daily-plan-legend__hint">
-              Click a past day to change it
+              Click a past day to cycle success, failed, neutral
             </span>
           </div>
 
@@ -336,8 +341,10 @@ export function DailyPlanPanel({
                     const editable =
                       configured &&
                       dateKey < todayKey;
-                    const nextStatus =
-                      status === "completed" ? "failed" : "successful";
+                    const nextStatus = getNextPastDailyPlanStatus(
+                      plan,
+                      dateKey,
+                    );
                     const label = editable
                       ? `${fullDateFormatter.format(date)}: ${status}. Click to mark ${nextStatus}.`
                       : `${fullDateFormatter.format(date)}: ${status}`;

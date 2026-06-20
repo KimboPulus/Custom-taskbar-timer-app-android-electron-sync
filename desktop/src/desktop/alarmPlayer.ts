@@ -49,6 +49,32 @@ function playGentleChime(volume: number): void {
   stopTimer = window.setTimeout(stopAlarm, 3_000);
 }
 
+export function playTimerClick(kind: "pause" | "resume"): void {
+  const context = new AudioContext();
+  const start = context.currentTime;
+  const gain = context.createGain();
+  const oscillator = context.createOscillator();
+
+  oscillator.type = "triangle";
+  oscillator.frequency.setValueAtTime(kind === "pause" ? 410 : 520, start);
+  oscillator.frequency.exponentialRampToValueAtTime(
+    kind === "pause" ? 310 : 680,
+    start + 0.07,
+  );
+
+  gain.gain.setValueAtTime(0.0001, start);
+  gain.gain.exponentialRampToValueAtTime(0.13, start + 0.006);
+  gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.09);
+
+  oscillator.connect(gain);
+  gain.connect(context.destination);
+  oscillator.start(start);
+  oscillator.stop(start + 0.11);
+  oscillator.addEventListener("ended", () => {
+    void context.close();
+  });
+}
+
 export async function playAlarm(
   sound: AlarmSound,
   volume: number,

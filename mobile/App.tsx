@@ -13,7 +13,7 @@ import {
 import {SafeAreaView} from 'react-native-safe-area-context';
 
 type TimerStatus = 'Idle' | 'Running' | 'Paused' | 'Finished';
-type DailyPlanStatus = 'Completed' | 'Failed';
+type DailyPlanStatus = 'Completed' | 'Failed' | 'Neutral';
 
 type TimerSyncState = {
   durationMs: number;
@@ -49,6 +49,8 @@ type FocusPresetSyncItem = {
 
 type AppSyncSettings = {
   soundEnabled: boolean;
+  pauseSoundEnabled?: boolean;
+  resumeSoundEnabled?: boolean;
   alarmVolume: number;
   modifiedAt: string;
   modifiedBy: string;
@@ -139,6 +141,8 @@ function createDefaultSnapshot(deviceId: string): SyncSnapshot {
     ].map(durationMs => ({durationMs, modifiedAt, modifiedBy: deviceId})),
     settings: {
       soundEnabled: true,
+      pauseSoundEnabled: true,
+      resumeSoundEnabled: true,
       alarmVolume: 0.7,
       modifiedAt,
       modifiedBy: deviceId,
@@ -498,6 +502,10 @@ export default function App() {
             <ButtonLabel
               text="Set failed"
               onPress={() => setDayStatus(selectedDate.trim(), 'Failed')}
+            />
+            <ButtonLabel
+              text="Set neutral"
+              onPress={() => setDayStatus(selectedDate.trim(), 'Neutral')}
             />
           </View>
           <Text style={styles.syncText}>

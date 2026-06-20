@@ -20,6 +20,8 @@ const browserSettings: AppSettings = {
   taskbarModeEnabled: true,
   compactPosition: null,
   soundEnabled: true,
+  pauseSoundEnabled: true,
+  resumeSoundEnabled: true,
   alarmSound: {
     kind: "built-in",
     id: "gentle-chime",
@@ -40,6 +42,7 @@ const browserSettings: AppSettings = {
     startDate: null,
     completedDates: [],
     failedDates: [],
+    neutralDates: [],
   },
 };
 
