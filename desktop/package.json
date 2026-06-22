@@ -1,8 +1,9 @@
 {
   "name": "focus-timer",
-  "version": "1.5.4",
+  "version": "1.5.5",
   "description": "A polished local desktop timer for Windows and Linux.",
   "main": "dist-electron/electron/main.js",
+  "homepage": "https://github.com/KimboPulus/Custom-taskbar-timer-app-android-electron-sync",
   "author": "Max",
   "license": "MIT",
   "type": "module",
@@ -93,6 +94,7 @@
       ],
       "category": "Utility",
       "synopsis": "Local-first focus timer",
+      "maintainer": "KimboPulus <KimboPulus@users.noreply.github.com>",
       "description": "A local-first focus timer with daily plan tracking and Android sync.",
       "artifactName": "Focus-Timer-${version}-linux-${arch}.${ext}"
     },
