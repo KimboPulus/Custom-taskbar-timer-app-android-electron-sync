@@ -25,6 +25,9 @@ app.setAppUserModelId(
   app.isPackaged ? "com.max.focustimer" : "com.max.focustimer.dev",
 );
 app.commandLine.appendSwitch("autoplay-policy", "no-user-gesture-required");
+if (process.platform === "linux") {
+  app.commandLine.appendSwitch("disable-dev-shm-usage");
+}
 
 if (hasSingleInstanceLock) {
   app.whenReady().then(async () => {

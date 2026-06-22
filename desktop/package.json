@@ -1,7 +1,7 @@
 {
   "name": "focus-timer",
-  "version": "1.5.3",
-  "description": "A polished local desktop timer for Windows.",
+  "version": "1.5.4",
+  "description": "A polished local desktop timer for Windows and Linux.",
   "main": "dist-electron/electron/main.js",
   "author": "Max",
   "license": "MIT",
@@ -15,7 +15,9 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "start": "electron .",
-    "package": "npm run build && electron-builder --win nsis",
+    "package": "npm run package:win",
+    "package:win": "npm run build && electron-builder --win nsis",
+    "package:linux": "npm run build && electron-builder --linux AppImage deb rpm",
     "package:portable": "npm run build && electron-builder --win portable"
   },
   "dependencies": {
@@ -51,12 +53,6 @@
       "dist-electron/**/*",
       "package.json"
     ],
-    "extraResources": [
-      {
-        "from": "native/bin/FocusTimerTaskbarHost.exe",
-        "to": "taskbar-host/FocusTimerTaskbarHost.exe"
-      }
-    ],
     "win": {
       "target": [
         {
@@ -66,7 +62,39 @@
           ]
         }
       ],
-      "artifactName": "Focus-Timer-Setup-${version}.${ext}"
+      "artifactName": "Focus-Timer-Setup-${version}.${ext}",
+      "extraResources": [
+        {
+          "from": "native/bin/FocusTimerTaskbarHost.exe",
+          "to": "taskbar-host/FocusTimerTaskbarHost.exe"
+        }
+      ]
+    },
+    "linux": {
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "deb",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "rpm",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "category": "Utility",
+      "synopsis": "Local-first focus timer",
+      "description": "A local-first focus timer with daily plan tracking and Android sync.",
+      "artifactName": "Focus-Timer-${version}-linux-${arch}.${ext}"
     },
     "nsis": {
       "oneClick": false,

@@ -13,6 +13,8 @@ import type {
   WindowMode,
 } from "../src/desktop/desktopTypes.js";
 
+const supportsWindowsTaskbarMode = process.platform === "win32";
+
 export const defaultSettings: AppSettings = {
   selectedDurationMs: 25 * 60 * 1000,
   timerState: {
@@ -29,7 +31,7 @@ export const defaultSettings: AppSettings = {
     2 * 60 * 60 * 1000,
   ],
   windowMode: "full",
-  taskbarModeEnabled: true,
+  taskbarModeEnabled: supportsWindowsTaskbarMode,
   compactPosition: null,
   soundEnabled: true,
   pauseSoundEnabled: true,
@@ -101,6 +103,9 @@ function normalizeWindowMode(
   legacyCompactMode: unknown,
   taskbarModeEnabled: boolean,
 ): WindowMode {
+  if (!supportsWindowsTaskbarMode && value === "taskbar") {
+    return "full";
+  }
   if (value === "taskbar") {
     return taskbarModeEnabled ? "taskbar" : "full";
   }
@@ -256,9 +261,10 @@ export class SettingsStore {
           ? Math.round(stored.selectedDurationMs as number)
           : defaultSettings.selectedDurationMs;
       const taskbarModeEnabled =
-        typeof stored.taskbarModeEnabled === "boolean"
+        supportsWindowsTaskbarMode &&
+        (typeof stored.taskbarModeEnabled === "boolean"
           ? stored.taskbarModeEnabled
-          : defaultSettings.taskbarModeEnabled;
+          : defaultSettings.taskbarModeEnabled);
       this.settings = {
         ...defaultSettings,
         ...storedSettings,
@@ -312,7 +318,8 @@ export class SettingsStore {
 
   async update(patch: Partial<AppSettings>): Promise<AppSettings> {
     const taskbarModeEnabled =
-      patch.taskbarModeEnabled ?? this.settings.taskbarModeEnabled;
+      supportsWindowsTaskbarMode &&
+      (patch.taskbarModeEnabled ?? this.settings.taskbarModeEnabled);
     const windowMode = normalizeWindowMode(
       patch.windowMode ?? this.settings.windowMode,
       false,

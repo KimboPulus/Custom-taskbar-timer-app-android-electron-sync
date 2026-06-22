@@ -34,6 +34,10 @@ async function fileExists(filePath: string): Promise<boolean> {
 }
 
 export async function listSystemSounds(): Promise<SystemSoundOption[]> {
+  if (process.platform !== "win32") {
+    return [];
+  }
+
   try {
     const entries = await fs.readdir(windowsMediaDirectory(), {
       withFileTypes: true,
@@ -96,6 +100,10 @@ export async function resolveAlarmUrl(
     sound.kind === "system"
       ? path.join(windowsMediaDirectory(), path.basename(sound.id))
       : sound.source;
+
+  if (sound.kind === "system" && process.platform !== "win32") {
+    return null;
+  }
 
   if (!(await fileExists(filePath))) {
     return null;
