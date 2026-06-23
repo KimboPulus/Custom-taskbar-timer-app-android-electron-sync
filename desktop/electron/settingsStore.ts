@@ -14,6 +14,7 @@ import type {
 } from "../src/desktop/desktopTypes.js";
 
 const supportsWindowsTaskbarMode = process.platform === "win32";
+const startsFullWhenRestoring = process.platform === "linux";
 
 export const defaultSettings: AppSettings = {
   selectedDurationMs: 25 * 60 * 1000,
@@ -265,15 +266,19 @@ export class SettingsStore {
         (typeof stored.taskbarModeEnabled === "boolean"
           ? stored.taskbarModeEnabled
           : defaultSettings.taskbarModeEnabled);
+      const restoredWindowMode = normalizeWindowMode(
+        stored.windowMode,
+        compactMode,
+        taskbarModeEnabled,
+      );
       this.settings = {
         ...defaultSettings,
         ...storedSettings,
         selectedDurationMs,
-        windowMode: normalizeWindowMode(
-          stored.windowMode,
-          compactMode,
-          taskbarModeEnabled,
-        ),
+        windowMode:
+          startsFullWhenRestoring && restoredWindowMode === "compact"
+            ? "full"
+            : restoredWindowMode,
         taskbarModeEnabled,
         timerState: normalizeTimerState(
           stored.timerState,

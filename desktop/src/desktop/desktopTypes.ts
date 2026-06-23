@@ -87,6 +87,7 @@ export type ElectronAPI = {
     mode: WindowMode,
     transitionId?: number,
   ) => void;
+  moveCompactWindowBy: (deltaX: number, deltaY: number) => void;
   minimizeWindow: () => void;
   toggleMaximizeWindow: () => Promise<boolean>;
   closeWindow: () => void;

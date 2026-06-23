@@ -67,6 +67,7 @@ export function DailyPlanPanel({
   const [year, setYear] = useState(currentYear);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [streakPopup, setStreakPopup] = useState<number | null>(null);
 
   useEffect(() => {
     setTitle(plan.title);
@@ -121,14 +122,25 @@ export function DailyPlanPanel({
       completedDates.add(todayKey);
     }
 
-    setSaving(true);
-    await onSave({
+    const nextPlan = {
       ...plan,
       completedDates: [...completedDates].sort(),
       failedDates: [...failedDates].sort(),
       neutralDates: [...neutralDates].sort(),
-    });
+    };
+    const nextStreak = getCurrentDailyPlanStreak(nextPlan, todayKey);
+
+    setSaving(true);
+    await onSave(nextPlan);
     setSaving(false);
+
+    if (
+      todayStatus !== "completed" &&
+      nextStreak > 0 &&
+      nextStreak % 10 === 0
+    ) {
+      setStreakPopup(nextStreak);
+    }
   };
 
   const togglePastDate = async (dateKey: string) => {
@@ -381,6 +393,22 @@ export function DailyPlanPanel({
           </div>
         </section>
       </section>
+      {streakPopup !== null && (
+        <div
+          className="streak-popup"
+          role="alertdialog"
+          aria-modal="true"
+          aria-labelledby="streak-popup-title"
+          onMouseDown={(event) => event.stopPropagation()}
+        >
+          <span className="streak-popup__kicker">{streakPopup} day streak</span>
+          <h3 id="streak-popup-title">Who's gonna carry the boats?</h3>
+          <p>Another 10-day block finished. Keep the chain alive.</p>
+          <button type="button" onClick={() => setStreakPopup(null)}>
+            Back to work
+          </button>
+        </div>
+      )}
     </div>
   );
 }

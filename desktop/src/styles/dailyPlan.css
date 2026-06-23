@@ -427,6 +427,63 @@
   visibility: hidden;
 }
 
+.streak-popup {
+  position: fixed;
+  z-index: 45;
+  top: 50%;
+  left: 50%;
+  width: min(360px, calc(100vw - 36px));
+  padding: 24px;
+  transform: translate(-50%, -50%);
+  border: 1px solid color-mix(in srgb, var(--teal) 38%, var(--line));
+  border-radius: 24px;
+  background: var(--surface);
+  box-shadow: 0 24px 70px rgba(9, 33, 31, 0.24);
+  text-align: center;
+}
+
+.streak-popup__kicker {
+  display: inline-flex;
+  margin-bottom: 10px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  color: #9b5b28;
+  background: color-mix(in srgb, #f5a85f 17%, var(--surface));
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.streak-popup h3 {
+  margin: 0;
+  color: var(--text);
+  font-size: 24px;
+  letter-spacing: -0.04em;
+}
+
+.streak-popup p {
+  margin: 10px 0 18px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.streak-popup button {
+  width: 100%;
+  min-height: 42px;
+  border: 0;
+  border-radius: 12px;
+  color: white;
+  background: var(--teal);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.streak-popup button:hover {
+  background: var(--teal-dark);
+}
+
 @media (max-width: 840px) {
   .daily-plan-top {
     grid-template-columns: 1fr;

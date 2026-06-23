@@ -219,6 +219,19 @@ export class WindowManager {
     );
   }
 
+  moveCompactBy(deltaX: number, deltaY: number): void {
+    if (!this.window || this.mode !== "compact") {
+      return;
+    }
+
+    const bounds = this.window.getBounds();
+    this.window.setBounds({
+      ...bounds,
+      x: bounds.x + deltaX,
+      y: bounds.y + deltaY,
+    });
+  }
+
   minimize(): void {
     this.window?.minimize();
   }

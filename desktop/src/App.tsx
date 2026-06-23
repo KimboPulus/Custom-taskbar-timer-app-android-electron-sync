@@ -197,6 +197,15 @@ export default function App() {
     }));
   }, []);
 
+  const exitCompactMode = useCallback(async () => {
+    const appliedMode = await electronApi.setWindowMode("full");
+    setWindowMode(appliedMode);
+    setSettings((current) => ({
+      ...current,
+      windowMode: appliedMode,
+    }));
+  }, []);
+
   useEffect(() => {
     const handleShortcut = (action: ShortcutAction) => {
       switch (action) {
@@ -272,7 +281,10 @@ export default function App() {
       {taskbarMode ? (
         <TaskbarTimer timer={timer.state} />
       ) : compactMode ? (
-        <CompactTimer timer={timer.state} />
+        <CompactTimer
+          timer={timer.state}
+          onExitCompact={() => void exitCompactMode()}
+        />
       ) : (
         <FullTimer
           timer={timer.state}

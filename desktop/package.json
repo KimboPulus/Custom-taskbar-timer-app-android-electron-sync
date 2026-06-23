@@ -1,6 +1,6 @@
 {
   "name": "focus-timer",
-  "version": "1.5.7",
+  "version": "1.5.8",
   "description": "A polished local desktop timer for Windows and Linux.",
   "main": "dist-electron/electron/main.js",
   "desktopName": "focus-timer",

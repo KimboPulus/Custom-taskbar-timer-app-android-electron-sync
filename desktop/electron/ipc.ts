@@ -29,6 +29,11 @@ export function registerIpcHandlers(
     (_event, mode: WindowMode, transitionId?: number) =>
       windowManager.rendererModeRendered(mode, transitionId),
   );
+  ipcMain.on("window:move-compact-by", (_event, deltaX, deltaY) => {
+    if (Number.isFinite(deltaX) && Number.isFinite(deltaY)) {
+      windowManager.moveCompactBy(Math.round(deltaX), Math.round(deltaY));
+    }
+  });
   ipcMain.on("window:minimize", () => windowManager.minimize());
   ipcMain.handle("window:toggle-maximize", () =>
     windowManager.toggleMaximize(),

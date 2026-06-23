@@ -60,6 +60,7 @@ const browserFallback: ElectronAPI = {
   },
   onWindowModeChanged: () => () => undefined,
   notifyWindowModeRendered: () => undefined,
+  moveCompactWindowBy: () => undefined,
   minimizeWindow: () => undefined,
   toggleMaximizeWindow: async () => false,
   closeWindow: () => undefined,

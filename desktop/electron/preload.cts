@@ -23,6 +23,8 @@ const electronAPI: ElectronAPI = {
   },
   notifyWindowModeRendered: (mode, transitionId) =>
     ipcRenderer.send("window:mode-rendered", mode, transitionId),
+  moveCompactWindowBy: (deltaX, deltaY) =>
+    ipcRenderer.send("window:move-compact-by", deltaX, deltaY),
   minimizeWindow: () => ipcRenderer.send("window:minimize"),
   toggleMaximizeWindow: () => ipcRenderer.invoke("window:toggle-maximize"),
   closeWindow: () => ipcRenderer.send("window:close"),
