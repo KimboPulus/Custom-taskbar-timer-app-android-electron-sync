@@ -224,12 +224,8 @@ export class WindowManager {
       return;
     }
 
-    const bounds = this.window.getBounds();
-    this.window.setBounds({
-      ...bounds,
-      x: bounds.x + deltaX,
-      y: bounds.y + deltaY,
-    });
+    const [x, y] = this.window.getPosition();
+    this.window.setPosition(x + deltaX, y + deltaY, false);
   }
 
   minimize(): void {
