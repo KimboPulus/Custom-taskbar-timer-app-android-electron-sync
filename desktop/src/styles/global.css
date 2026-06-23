@@ -214,8 +214,7 @@ select:focus-visible {
 
 .icon-button,
 .icon-text-button,
-.control-button,
-.compact-expand {
+.control-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;

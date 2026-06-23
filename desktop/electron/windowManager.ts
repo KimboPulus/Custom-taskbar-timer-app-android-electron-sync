@@ -15,7 +15,7 @@ import {
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const FULL_SIZE = { width: 900, height: 620 };
-const COMPACT_SIZE = { width: 240, height: 180 };
+const COMPACT_SIZE = { width: 172, height: 54 };
 
 export class WindowManager {
   private window: BrowserWindow | null = null;

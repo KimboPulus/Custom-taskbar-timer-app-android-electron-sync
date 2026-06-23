@@ -188,15 +188,6 @@ export default function App() {
     timer.state.status,
   ]);
 
-  const applyWindowMode = useCallback(async (mode: WindowMode) => {
-    const appliedMode = await electronApi.setWindowMode(mode);
-    setWindowMode(appliedMode);
-    setSettings((current) => ({
-      ...current,
-      windowMode: appliedMode,
-    }));
-  }, []);
-
   const cycleWindowMode = useCallback(async () => {
     const appliedMode = await electronApi.cycleWindowMode();
     setWindowMode(appliedMode);
@@ -277,17 +268,11 @@ export default function App() {
             : ""
       }`}
     >
-      {!taskbarMode && <WindowChrome compact={compactMode} />}
+      {!taskbarMode && !compactMode && <WindowChrome compact={false} />}
       {taskbarMode ? (
         <TaskbarTimer timer={timer.state} />
       ) : compactMode ? (
-        <CompactTimer
-          timer={timer.state}
-          onToggle={timer.toggle}
-          onReset={timer.reset}
-          onSetDuration={selectDuration}
-          onExitCompact={() => void applyWindowMode("full")}
-        />
+        <CompactTimer timer={timer.state} />
       ) : (
         <FullTimer
           timer={timer.state}

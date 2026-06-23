@@ -63,7 +63,7 @@ export function playTimerClick(kind: "pause" | "resume"): void {
   );
 
   gain.gain.setValueAtTime(0.0001, start);
-  gain.gain.exponentialRampToValueAtTime(0.13, start + 0.006);
+  gain.gain.exponentialRampToValueAtTime(0.15, start + 0.006);
   gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.09);
 
   oscillator.connect(gain);
