@@ -12,7 +12,7 @@ No cloud service is required.
 
 ### Android App
 
-![Android app](docs/screenshots/01-android-app.png)
+![Android app](docs/screenshots/00-android-app.png)
 
 ### Desktop Overview
 
