@@ -74,7 +74,6 @@ type SyncPushResponse = {
 type FocusTimerSharedCapabilities = {
   logic: string;
   activeTarget: string;
-  iosTargetConfigured: boolean;
 };
 
 type FocusTimerSharedNative = {

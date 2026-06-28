@@ -75,7 +75,6 @@ public class FocusTimerSharedModule extends ReactContextBaseJavaModule {
     WritableMap capabilities = Arguments.createMap();
     capabilities.putString("logic", "kotlin-multiplatform");
     capabilities.putString("activeTarget", "android");
-    capabilities.putBoolean("iosTargetConfigured", false);
     promise.resolve(capabilities);
   }
 

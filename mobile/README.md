@@ -1,14 +1,8 @@
 # Focus Timer Mobile React Native
 
 React Native + TypeScript Android companion for the existing Electron Focus Timer app.
-The UI stays in React Native. Shared app logic is being moved into Kotlin
-Multiplatform under `android/shared`, with Android as the only active target for
-now.
-
-No iOS files or iOS build targets are configured yet. The point of the KMP module
-is to make a later iOS port easier: add an iOS target to `android/shared`, expose
-the same common logic through a small iOS React Native bridge, and keep the UI
-mostly in React Native.
+The UI stays in React Native. Shared app logic lives in Kotlin under
+`android/shared`. Android is the only supported mobile platform in this project.
 
 The Electron desktop app is the sync host. When it launches, it exposes:
 
