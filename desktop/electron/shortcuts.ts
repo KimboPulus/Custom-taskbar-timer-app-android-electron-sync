@@ -27,6 +27,9 @@ export class ShortcutManager {
 
     for (const { key, action } of shortcutActions) {
       const accelerator = labels[key];
+      if (!accelerator) {
+        continue;
+      }
       let registered = false;
 
       try {

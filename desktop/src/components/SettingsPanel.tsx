@@ -8,6 +8,7 @@ import type {
   SystemSoundOption,
   ThemePreference,
 } from "../desktop/desktopTypes";
+import { shortcutFromKeyboardEvent } from "./shortcutRecorder";
 
 type SettingsPanelProps = {
   settings: AppSettings;
@@ -54,6 +55,9 @@ export function SettingsPanel({
   const [saved, setSaved] = useState(false);
   const [previewing, setPreviewing] = useState(false);
   const [soundError, setSoundError] = useState("");
+  const [recordingShortcut, setRecordingShortcut] = useState<
+    keyof ShortcutLabels | null
+  >(null);
 
   useEffect(() => setShortcuts(settings.shortcutLabels), [settings.shortcutLabels]);
 
@@ -321,7 +325,7 @@ export function SettingsPanel({
           <div className="setting-block__heading">
             <div>
               <label>Global shortcuts</label>
-              <p>Electron accelerator format, active across Windows.</p>
+              <p>Click a field, then press the keyboard combination.</p>
             </div>
             <button type="button" onClick={saveShortcuts}>
               {saved ? "Saved" : "Save"}
@@ -333,12 +337,33 @@ export function SettingsPanel({
                 <span>{field.label}</span>
                 <input
                   value={shortcuts[field.key]}
-                  onChange={(event) =>
-                    setShortcuts((current) => ({
-                      ...current,
-                      [field.key]: event.target.value,
-                    }))
+                  readOnly
+                  placeholder="Click and press shortcut"
+                  aria-label={`Record shortcut for ${field.label}`}
+                  className={
+                    recordingShortcut === field.key ? "is-recording" : undefined
                   }
+                  onFocus={() => setRecordingShortcut(field.key)}
+                  onBlur={() => setRecordingShortcut(null)}
+                  onKeyDown={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    if (event.key === "Backspace" || event.key === "Delete") {
+                      setShortcuts((current) => ({
+                        ...current,
+                        [field.key]: "",
+                      }));
+                      return;
+                    }
+                    const shortcut = shortcutFromKeyboardEvent(event.nativeEvent);
+                    if (shortcut) {
+                      setShortcuts((current) => ({
+                        ...current,
+                        [field.key]: shortcut,
+                      }));
+                      event.currentTarget.blur();
+                    }
+                  }}
                 />
               </label>
             ))}

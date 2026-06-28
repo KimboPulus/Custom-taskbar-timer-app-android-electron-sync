@@ -547,6 +547,13 @@
   padding: 0 10px;
   font-family: Consolas, monospace;
   font-size: 11px;
+  cursor: pointer;
+  caret-color: transparent;
+}
+
+.shortcut-field input.is-recording {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(61, 148, 143, 0.14);
 }
 
 .shortcut-warnings {

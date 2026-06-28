@@ -209,6 +209,9 @@ export default function App() {
 
   useEffect(() => {
     const handleShortcut = (action: ShortcutAction) => {
+      if (settingsOpen) {
+        return;
+      }
       switch (action) {
         case "toggle-play-pause":
           toggleTimer();
@@ -229,7 +232,13 @@ export default function App() {
     };
 
     return electronApi.onShortcutAction(handleShortcut);
-  }, [toggleTimer, timer.reset, timer.changeTime, cycleWindowMode]);
+  }, [
+    settingsOpen,
+    toggleTimer,
+    timer.reset,
+    timer.changeTime,
+    cycleWindowMode,
+  ]);
 
   const selectDuration = useCallback(
     (durationMs: number) => {
