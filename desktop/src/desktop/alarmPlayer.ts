@@ -3,6 +3,7 @@ import type { AlarmSound } from "./desktopTypes";
 
 let activeMedia: HTMLMediaElement | null = null;
 let activeContext: AudioContext | null = null;
+let clickContext: AudioContext | null = null;
 let stopTimer: number | null = null;
 
 export function stopAlarm(): void {
@@ -50,7 +51,11 @@ function playGentleChime(volume: number): void {
 }
 
 export function playTimerClick(kind: "pause" | "resume"): void {
-  const context = new AudioContext();
+  const context = clickContext ?? new AudioContext();
+  clickContext = context;
+  if (context.state === "suspended") {
+    void context.resume();
+  }
   const start = context.currentTime;
   const gain = context.createGain();
   const oscillator = context.createOscillator();
@@ -70,9 +75,6 @@ export function playTimerClick(kind: "pause" | "resume"): void {
   gain.connect(context.destination);
   oscillator.start(start);
   oscillator.stop(start + 0.11);
-  oscillator.addEventListener("ended", () => {
-    void context.close();
-  });
 }
 
 export async function playAlarm(

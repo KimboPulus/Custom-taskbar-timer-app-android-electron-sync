@@ -164,29 +164,30 @@ export default function App() {
       }
       electronApi.notifyTimerFinished();
     }
-    if (
-      timer.state.status === "paused" &&
-      previousStatus.current === "running" &&
-      settings.pauseSoundEnabled
-    ) {
-      playTimerClick("pause");
-    }
-    if (
-      timer.state.status === "running" &&
-      previousStatus.current === "paused" &&
-      settings.resumeSoundEnabled
-    ) {
-      playTimerClick("resume");
-    }
     previousStatus.current = timer.state.status;
   }, [
     settings.alarmSound,
     settings.alarmVolume,
-    settings.pauseSoundEnabled,
-    settings.resumeSoundEnabled,
     settings.soundEnabled,
     timer.state.status,
   ]);
+
+  const toggleTimer = useCallback(() => {
+    const transition = timer.toggle();
+    if (
+      transition.previousStatus === "running" &&
+      transition.nextStatus === "paused" &&
+      settings.pauseSoundEnabled
+    ) {
+      playTimerClick("pause");
+    } else if (
+      transition.previousStatus === "paused" &&
+      transition.nextStatus === "running" &&
+      settings.resumeSoundEnabled
+    ) {
+      playTimerClick("resume");
+    }
+  }, [settings.pauseSoundEnabled, settings.resumeSoundEnabled, timer.toggle]);
 
   const cycleWindowMode = useCallback(async () => {
     const appliedMode = await electronApi.cycleWindowMode();
@@ -210,7 +211,7 @@ export default function App() {
     const handleShortcut = (action: ShortcutAction) => {
       switch (action) {
         case "toggle-play-pause":
-          timer.toggle();
+          toggleTimer();
           break;
         case "toggle-compact":
           void cycleWindowMode();
@@ -228,7 +229,7 @@ export default function App() {
     };
 
     return electronApi.onShortcutAction(handleShortcut);
-  }, [timer.toggle, timer.reset, timer.changeTime, cycleWindowMode]);
+  }, [toggleTimer, timer.reset, timer.changeTime, cycleWindowMode]);
 
   const selectDuration = useCallback(
     (durationMs: number) => {
@@ -289,7 +290,7 @@ export default function App() {
         <FullTimer
           timer={timer.state}
           settings={settings}
-          onToggle={timer.toggle}
+          onToggle={toggleTimer}
           onReset={timer.reset}
           onDurationChange={selectDuration}
           onAddCustomPreset={addCustomPreset}

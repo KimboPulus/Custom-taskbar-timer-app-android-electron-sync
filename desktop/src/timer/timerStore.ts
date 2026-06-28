@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useReducer } from "react";
+import { useCallback, useEffect, useReducer, useRef } from "react";
 import {
   addTime,
   createInitialTimerState,
@@ -52,6 +52,8 @@ export function useTimerStore(initialDurationMs: number) {
     initialDurationMs,
     createInitialTimerState,
   );
+  const stateRef = useRef(state);
+  stateRef.current = state;
 
   useEffect(() => {
     if (state.status !== "running") {
@@ -64,10 +66,14 @@ export function useTimerStore(initialDurationMs: number) {
     return () => window.clearInterval(interval);
   }, [state.status]);
 
-  const toggle = useCallback(
-    () => dispatch({ type: "toggle", now: Date.now() }),
-    [],
-  );
+  const toggle = useCallback(() => {
+    const action: TimerAction = { type: "toggle", now: Date.now() };
+    const previous = stateRef.current;
+    const next = reducer(previous, action);
+    stateRef.current = next;
+    dispatch(action);
+    return { previousStatus: previous.status, nextStatus: next.status };
+  }, []);
   const reset = useCallback(() => dispatch({ type: "reset" }), []);
   const restore = useCallback(
     (state: TimerState) =>
