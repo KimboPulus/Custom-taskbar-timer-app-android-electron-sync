@@ -7,6 +7,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const source = path.join(root, "native", "FocusTimerTaskbarHost.cpp");
 const outputDir = path.join(root, "native", "bin");
 const output = path.join(outputDir, "FocusTimerTaskbarHost.exe");
+const objectFile = path.join(outputDir, "FocusTimerTaskbarHost.obj");
 if (process.platform !== "win32") {
   console.log("Skipping Windows taskbar helper build on this platform.");
   process.exit(0);
@@ -27,7 +28,7 @@ const vswhere = path.join(
   "Installer",
   "vswhere.exe",
 );
-let command = `cl /nologo /std:c++17 /EHsc /O2 /DUNICODE /D_UNICODE /Fe:"${output}" "${source}" user32.lib`;
+let command = `cl /nologo /std:c++17 /EHsc /O2 /DUNICODE /D_UNICODE /Fo:"${objectFile}" /Fe:"${output}" "${source}" user32.lib`;
 
 if (spawnSync("where", ["cl"], { windowsHide: true }).status !== 0) {
   if (!existsSync(vswhere)) {
