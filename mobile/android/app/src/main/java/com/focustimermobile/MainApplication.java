@@ -20,7 +20,6 @@ public class MainApplication extends Application implements ReactApplication {
   public ReactHost getReactHost() {
     if (reactHost == null) {
       List<ReactPackage> packages = new ArrayList<>(new PackageList(this).getPackages());
-      packages.add(new FocusTimerSharedPackage());
       Function1<Exception, Unit> exceptionHandler =
           error -> {
             throw new RuntimeException(error);

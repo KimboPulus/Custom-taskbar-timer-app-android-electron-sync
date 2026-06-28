@@ -1,8 +1,8 @@
 # Focus Timer Mobile React Native
 
 React Native + TypeScript Android companion for the existing Electron Focus Timer app.
-The UI stays in React Native. Shared app logic lives in Kotlin under
-`android/shared`. Android is the only supported mobile platform in this project.
+Timer, plan, streak, validation, and sync-client logic run in TypeScript. The
+Android directory only contains the native React Native bootstrap and build files.
 
 The Electron desktop app is the sync host. When it launches, it exposes:
 

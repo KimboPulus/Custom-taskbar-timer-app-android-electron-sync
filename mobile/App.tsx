@@ -2,7 +2,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {
   AppState,
-  NativeModules,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -71,34 +70,12 @@ type SyncPushResponse = {
   snapshot: SyncSnapshot;
 };
 
-type FocusTimerSharedCapabilities = {
-  logic: string;
-  activeTarget: string;
-};
-
-type FocusTimerSharedNative = {
-  formatDuration: (milliseconds: number) => Promise<string>;
-  normalizeServerUrl: (value: string) => Promise<string>;
-  isDateKey: (value: string) => Promise<boolean>;
-  nextManualDailyPlanStatus: (
-    currentStatus: DailyPlanStatus | null,
-  ) => Promise<DailyPlanStatus>;
-  calculateStreak: (
-    todayKey: string,
-    completedDates: string[],
-  ) => Promise<number>;
-  getCapabilities: () => Promise<FocusTimerSharedCapabilities>;
-};
-
 const snapshotKey = 'focus-timer:snapshot';
 const knownVersionKey = 'focus-timer:known-version';
 const deviceIdKey = 'focus-timer:device-id';
 const serverUrlKey = 'focus-timer:server-url';
 const defaultServerUrl = 'http://10.0.2.2:5278';
 const defaultDurationMs = 25 * 60 * 1000;
-const focusTimerShared = NativeModules.FocusTimerShared as
-  | FocusTimerSharedNative
-  | undefined;
 
 function nowIso(): string {
   return new Date().toISOString();
@@ -199,39 +176,14 @@ function isDateKey(value: string): boolean {
   return !Number.isNaN(parsed.getTime()) && localDateKey(parsed) === value;
 }
 
-async function formatDurationShared(milliseconds: number): Promise<string> {
-  return focusTimerShared?.formatDuration(milliseconds) ?? formatDuration(milliseconds);
-}
-
-async function normalizeServerUrlShared(value: string): Promise<string> {
-  return focusTimerShared?.normalizeServerUrl(value) ?? normalizeServerUrl(value);
-}
-
-async function isDateKeyShared(value: string): Promise<boolean> {
-  return focusTimerShared?.isDateKey(value) ?? isDateKey(value);
-}
-
-async function nextManualDailyPlanStatusShared(
+function nextManualDailyPlanStatus(
   currentStatus: DailyPlanStatus | null,
-): Promise<DailyPlanStatus> {
-  return (
-    focusTimerShared?.nextManualDailyPlanStatus(currentStatus) ??
-    (currentStatus === 'Completed'
-      ? 'Failed'
-      : currentStatus === 'Failed'
-        ? 'Neutral'
-        : 'Completed')
-  );
-}
-
-async function calculateStreakShared(plan: DailyPlanSyncState): Promise<number> {
-  const completedDates = plan.dates
-    .filter(day => day.status === 'Completed')
-    .map(day => day.date);
-  return (
-    focusTimerShared?.calculateStreak(localDateKey(), completedDates) ??
-    calculateStreak(plan)
-  );
+): DailyPlanStatus {
+  return currentStatus === 'Completed'
+    ? 'Failed'
+    : currentStatus === 'Failed'
+      ? 'Neutral'
+      : 'Completed';
 }
 
 export default function App() {
@@ -247,9 +199,6 @@ export default function App() {
   const [targetMinutes, setTargetMinutes] = useState('270');
   const [selectedDate, setSelectedDate] = useState(localDateKey());
   const [now, setNow] = useState(Date.now());
-  const [timerText, setTimerText] = useState(formatDuration(defaultDurationMs));
-  const [streak, setStreak] = useState(0);
-  const [logicLayer, setLogicLayer] = useState('React Native UI + JS fallback');
   const syncInFlight = useRef(false);
 
   const persist = useCallback(
@@ -309,18 +258,6 @@ export default function App() {
     return () => clearInterval(interval);
   }, []);
 
-  useEffect(() => {
-    if (!focusTimerShared) {
-      return;
-    }
-
-    void focusTimerShared.getCapabilities().then(capabilities => {
-      setLogicLayer(
-        `${capabilities.logic} core on ${capabilities.activeTarget}`,
-      );
-    });
-  }, []);
-
   const syncNow = useCallback(
     async (auto = false) => {
       if (!ready || syncInFlight.current) {
@@ -328,7 +265,7 @@ export default function App() {
       }
 
       syncInFlight.current = true;
-      const baseUrl = await normalizeServerUrlShared(serverUrl);
+      const baseUrl = normalizeServerUrl(serverUrl);
       setServerUrl(baseUrl);
       await AsyncStorage.setItem(serverUrlKey, baseUrl);
       setSyncStatus(auto ? 'Auto syncing...' : 'Syncing...');
@@ -405,32 +342,11 @@ export default function App() {
     void now;
     return currentRemainingMs(snapshot.timer);
   }, [now, snapshot.timer]);
-
-  useEffect(() => {
-    let alive = true;
-    void formatDurationShared(remainingMs).then(text => {
-      if (alive) {
-        setTimerText(text);
-      }
-    });
-
-    return () => {
-      alive = false;
-    };
-  }, [remainingMs]);
-
-  useEffect(() => {
-    let alive = true;
-    void calculateStreakShared(snapshot.dailyPlan).then(nextStreak => {
-      if (alive) {
-        setStreak(nextStreak);
-      }
-    });
-
-    return () => {
-      alive = false;
-    };
-  }, [snapshot.dailyPlan]);
+  const timerText = useMemo(() => formatDuration(remainingMs), [remainingMs]);
+  const streak = useMemo(
+    () => calculateStreak(snapshot.dailyPlan),
+    [snapshot.dailyPlan],
+  );
 
   useEffect(() => {
     if (snapshot.timer.status === 'Running' && remainingMs === 0) {
@@ -492,8 +408,8 @@ export default function App() {
     });
   };
 
-  const setDayStatus = async (date: string, status: DailyPlanStatus) => {
-    if (!(await isDateKeyShared(date))) {
+  const setDayStatus = (date: string, status: DailyPlanStatus) => {
+    if (!isDateKey(date)) {
       setSelectedDate(localDateKey());
       return;
     }
@@ -517,11 +433,11 @@ export default function App() {
 
   const selectedDay = snapshot.dailyPlan.dates.find(day => day.date === selectedDate);
 
-  const cycleSelectedDate = async () => {
-    const nextStatus = await nextManualDailyPlanStatusShared(
+  const cycleSelectedDate = () => {
+    const nextStatus = nextManualDailyPlanStatus(
       selectedDay?.status ?? null,
     );
-    await setDayStatus(selectedDate.trim(), nextStatus);
+    setDayStatus(selectedDate.trim(), nextStatus);
   };
 
   if (!ready) {
@@ -541,7 +457,7 @@ export default function App() {
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.title}>Focus Timer</Text>
         <Text style={styles.subtitle}>React Native companion for your Electron timer</Text>
-        <Text style={styles.logicLayer}>{logicLayer}</Text>
+        <Text style={styles.logicLayer}>React Native + TypeScript</Text>
 
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Sync server</Text>

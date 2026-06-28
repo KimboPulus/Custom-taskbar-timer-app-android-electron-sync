@@ -1,5 +1,12 @@
 $ErrorActionPreference = "Stop"
 
+function Assert-LastCommandSucceeded {
+    param([string]$Step)
+    if ($LASTEXITCODE -ne 0) {
+        throw "$Step failed with exit code $LASTEXITCODE."
+    }
+}
+
 $mobileRoot = Split-Path -Parent $PSScriptRoot
 $repoRoot = Split-Path -Parent $mobileRoot
 $shortRepoRoot = "D:\ftrepo"
@@ -30,7 +37,9 @@ if (-not (Test-Path -LiteralPath $shortRepoRoot)) {
 Push-Location $shortMobileRoot
 try {
     & npx.cmd tsc --noEmit
+    Assert-LastCommandSucceeded "TypeScript validation"
     & npm.cmd test -- --runInBand
+    Assert-LastCommandSucceeded "React Native tests"
 
     New-Item -ItemType Directory -Force -Path ".\android\app\src\main\assets" | Out-Null
     & npx.cmd react-native bundle `
@@ -39,8 +48,10 @@ try {
         --entry-file index.js `
         --bundle-output android/app/src/main/assets/index.android.bundle `
         --assets-dest android/app/src/main/res
+    Assert-LastCommandSucceeded "React Native bundle"
 
     & ".\android\gradlew.bat" -p android :app:assembleDebug
+    Assert-LastCommandSucceeded "Android Gradle build"
 
     $artifactDir = Join-Path $mobileRoot "artifacts"
     New-Item -ItemType Directory -Force -Path $artifactDir | Out-Null
