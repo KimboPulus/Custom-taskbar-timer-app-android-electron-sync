@@ -33,6 +33,7 @@ export const defaultSettings: AppSettings = {
   ],
   windowMode: "full",
   taskbarModeEnabled: supportsWindowsTaskbarMode,
+  proModeEnabled: false,
   compactPosition: null,
   soundEnabled: true,
   pauseSoundEnabled: true,
@@ -280,6 +281,10 @@ export class SettingsStore {
             ? "full"
             : restoredWindowMode,
         taskbarModeEnabled,
+        proModeEnabled:
+          typeof stored.proModeEnabled === "boolean"
+            ? stored.proModeEnabled
+            : defaultSettings.proModeEnabled,
         timerState: normalizeTimerState(
           stored.timerState,
           selectedDurationMs,

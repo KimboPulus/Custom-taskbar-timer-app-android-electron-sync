@@ -66,6 +66,7 @@ export type AppSettings = {
   focusPresets: number[];
   windowMode: WindowMode;
   taskbarModeEnabled: boolean;
+  proModeEnabled: boolean;
   compactPosition: CompactPosition | null;
   soundEnabled: boolean;
   pauseSoundEnabled: boolean;

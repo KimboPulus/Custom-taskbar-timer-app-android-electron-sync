@@ -3,6 +3,7 @@ import type { DailyPlanSettings } from "../desktop/desktopTypes";
 import {
   formatDailyTarget,
   getCurrentDailyPlanStreak,
+  getDailyPlanCatchUpDays,
   getDailyPlanDayStatus,
   getDailyPlanYearStats,
   getLocalDateKey,
@@ -53,6 +54,36 @@ describe("daily plan", () => {
       completed: 3,
       failed: 2,
     });
+  });
+
+  it("counts failed days that need to be caught up", () => {
+    expect(getDailyPlanCatchUpDays(plan, "2026-06-14")).toBe(2);
+  });
+
+  it("updates catch-up days when failures are changed to neutral or completed", () => {
+    const manualFailedDate: DailyPlanSettings = {
+      ...plan,
+      failedDates: ["2026-06-11"],
+    };
+    expect(getDailyPlanCatchUpDays(manualFailedDate, "2026-06-14")).toBe(2);
+
+    const neutralDate = togglePastDailyPlanDate(manualFailedDate, "2026-06-11");
+    expect(getDailyPlanCatchUpDays(neutralDate, "2026-06-14")).toBe(1);
+
+    const completedDate = togglePastDailyPlanDate(neutralDate, "2026-06-13");
+    expect(getDailyPlanCatchUpDays(completedDate, "2026-06-14")).toBe(0);
+  });
+
+  it("includes manually failed days from before tracking started", () => {
+    const recentPlan: DailyPlanSettings = {
+      ...plan,
+      startDate: "2026-06-14",
+      completedDates: [],
+      failedDates: ["2026-06-10"],
+      neutralDates: [],
+    };
+
+    expect(getDailyPlanCatchUpDays(recentPlan, "2026-06-14")).toBe(1);
   });
 
   it("edits dates from before the plan started without changing nearby days", () => {

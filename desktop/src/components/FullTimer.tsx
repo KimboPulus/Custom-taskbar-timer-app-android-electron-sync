@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { getDailyPlanCatchUpDays } from "../dailyPlan/dailyPlan";
 import type { AppSettings } from "../desktop/desktopTypes";
 import { parseTime } from "../timer/parseTime";
 import type { TimerState } from "../timer/timerTypes";
@@ -35,6 +36,7 @@ export function FullTimer({
 }: FullTimerProps) {
   const [customTime, setCustomTime] = useState("00:25:00");
   const [customTimeInvalid, setCustomTimeInvalid] = useState(false);
+  const catchUpDays = getDailyPlanCatchUpDays(settings.dailyPlan);
 
   const applyCustomTimer = () => {
     const durationMs = parseTime(customTime);
@@ -94,6 +96,22 @@ export function FullTimer({
         </div>
 
         <div className="timer-card">
+          {settings.proModeEnabled && (
+            <div
+              className={`pro-catchup ${
+                catchUpDays > 0 ? "pro-catchup--warning" : ""
+              }`}
+              aria-label={`${catchUpDays} daily plan ${
+                catchUpDays === 1 ? "day" : "days"
+              } to catch up`}
+            >
+              <span>Warning</span>
+              <strong>{catchUpDays}</strong>
+              <small>
+                {catchUpDays === 1 ? "day" : "days"} to catch up
+              </small>
+            </div>
+          )}
           <TimerRing
             durationMs={timer.durationMs}
             remainingMs={timer.remainingMs}

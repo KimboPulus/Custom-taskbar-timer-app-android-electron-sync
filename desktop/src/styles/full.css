@@ -32,6 +32,7 @@
 }
 
 .timer-card {
+  position: relative;
   display: flex;
   min-height: 0;
   flex: 1;
@@ -44,6 +45,56 @@
     radial-gradient(circle at 50% 45%, var(--surface) 0, var(--surface) 43%, transparent 70%),
     var(--surface);
   box-shadow: var(--shadow);
+}
+
+.pro-catchup {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  display: grid;
+  min-width: 168px;
+  max-width: calc(100% - 36px);
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 2px 10px;
+  padding: 11px 13px;
+  border: 1px solid var(--line);
+  border-radius: 15px;
+  color: var(--muted);
+  background: color-mix(in srgb, var(--surface) 92%, var(--bg));
+  box-shadow: 0 12px 28px rgba(19, 46, 43, 0.1);
+}
+
+.pro-catchup span {
+  grid-column: 1 / -1;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.pro-catchup strong {
+  color: var(--text);
+  font-size: 29px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.pro-catchup small {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.pro-catchup--warning {
+  border-color: color-mix(in srgb, #c24e3f 52%, var(--line));
+  color: #9d392f;
+  background: color-mix(in srgb, #fff1ef 74%, var(--surface));
+}
+
+.pro-catchup--warning strong,
+.pro-catchup--warning small {
+  color: #8f3024;
 }
 
 .timer-ring {

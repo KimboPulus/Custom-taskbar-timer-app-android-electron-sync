@@ -321,6 +321,27 @@ export function SettingsPanel({
           </label>
         </div>
 
+        <div className="setting-row">
+          <div>
+            <strong>Pro mode</strong>
+            <p>
+              Show a warning on the main timer with failed daily-plan days to
+              catch up.
+            </p>
+          </div>
+          <label className="switch">
+            <input
+              type="checkbox"
+              aria-label="Enable pro mode"
+              checked={settings.proModeEnabled}
+              onChange={(event) =>
+                void onSave({ proModeEnabled: event.target.checked })
+              }
+            />
+            <span />
+          </label>
+        </div>
+
         <div className="setting-block">
           <div className="setting-block__heading">
             <div>

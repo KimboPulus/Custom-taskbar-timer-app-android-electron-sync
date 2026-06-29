@@ -103,6 +103,44 @@ export function getCurrentDailyPlanStreak(
   return streak;
 }
 
+function getNextDateKey(dateKey: string): string {
+  const [year, month, day] = dateKey.split("-").map(Number);
+  return getLocalDateKey(new Date(year, month - 1, day + 1));
+}
+
+export function getDailyPlanCatchUpDays(
+  plan: DailyPlanSettings,
+  todayKey = getLocalDateKey(),
+): number {
+  const countedDates = new Set<string>();
+  let catchUpDays = 0;
+
+  const countDate = (dateKey: string) => {
+    if (countedDates.has(dateKey) || dateKey > todayKey) {
+      return;
+    }
+
+    countedDates.add(dateKey);
+    if (getDailyPlanDayStatus(dateKey, plan, todayKey) === "failed") {
+      catchUpDays += 1;
+    }
+  };
+
+  if (plan.startDate) {
+    let cursor = plan.startDate;
+    while (cursor <= todayKey) {
+      countDate(cursor);
+      cursor = getNextDateKey(cursor);
+    }
+  }
+
+  for (const dateKey of plan.failedDates) {
+    countDate(dateKey);
+  }
+
+  return catchUpDays;
+}
+
 export function togglePastDailyPlanDate(
   plan: DailyPlanSettings,
   dateKey: string,

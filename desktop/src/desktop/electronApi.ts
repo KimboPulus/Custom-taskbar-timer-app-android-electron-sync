@@ -18,6 +18,7 @@ const browserSettings: AppSettings = {
   ],
   windowMode: "full",
   taskbarModeEnabled: true,
+  proModeEnabled: false,
   compactPosition: null,
   soundEnabled: true,
   pauseSoundEnabled: true,
