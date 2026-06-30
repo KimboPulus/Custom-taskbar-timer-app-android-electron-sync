@@ -1,0 +1,14 @@
+[package]
+name = "focus_timer_taskbar_host"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "FocusTimerTaskbarHost"
+path = "src/main.rs"
+
+[dependencies]
+windows-sys = { version = "0.61.2", features = [
+  "Win32_Foundation",
+  "Win32_UI_WindowsAndMessaging",
+] }

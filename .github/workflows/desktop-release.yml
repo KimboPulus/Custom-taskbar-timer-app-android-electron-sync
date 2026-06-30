@@ -42,9 +42,9 @@ jobs:
           cache: npm
           cache-dependency-path: desktop/package-lock.json
 
-      - name: Setup MSVC
+      - name: Setup Rust
         if: runner.os == 'Windows'
-        uses: ilammy/msvc-dev-cmd@v1
+        uses: dtolnay/rust-toolchain@stable
 
       - name: Install Linux packaging tools
         if: runner.os == 'Linux'
