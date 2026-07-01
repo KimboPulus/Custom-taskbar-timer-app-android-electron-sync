@@ -3,6 +3,8 @@ import type {
   ShortcutAction,
   ShortcutLabels,
 } from "../src/desktop/desktopTypes.js";
+import { requiresAltGrGuard } from "../src/desktop/shortcutPolicy.js";
+import { isExplicitShortcutAllowed } from "./taskbarHost.js";
 import type { WindowManager } from "./windowManager.js";
 
 const shortcutActions: Array<{
@@ -34,6 +36,9 @@ export class ShortcutManager {
 
       try {
         registered = globalShortcut.register(accelerator, () => {
+          if (requiresAltGrGuard(accelerator) && !isExplicitShortcutAllowed()) {
+            return;
+          }
           this.windowManager.getWindow()?.webContents.send("timer:shortcut-action", action);
         });
       } catch (error) {

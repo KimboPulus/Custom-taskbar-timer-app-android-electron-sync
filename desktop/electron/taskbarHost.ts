@@ -1,5 +1,5 @@
 import { app, type BrowserWindow } from "electron";
-import { execFile } from "node:child_process";
+import { execFile, spawnSync } from "node:child_process";
 import path from "node:path";
 
 function getWindowHandle(window: BrowserWindow): string {
@@ -39,6 +39,24 @@ function runHelper(args: string[]): Promise<void> {
       },
     );
   });
+}
+
+export function isExplicitShortcutAllowed(): boolean {
+  if (process.platform !== "win32") {
+    return true;
+  }
+
+  const result = spawnSync(getHelperPath(), ["allow-shortcut"], {
+    windowsHide: true,
+    timeout: 500,
+  });
+
+  if (result.error) {
+    console.warn("Could not verify shortcut modifier state:", result.error);
+    return true;
+  }
+
+  return result.status === 0;
 }
 
 export async function embedInWindowsTaskbar(
