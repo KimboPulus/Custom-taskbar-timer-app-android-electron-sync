@@ -18,6 +18,8 @@ const shortcutActions: Array<{
   { key: "subtractMinute", action: "subtract-minute" },
 ];
 
+const altGrDecisionDelayMs = 30;
+
 export class ShortcutManager {
   private warnings: string[] = [];
   private readonly modifierMonitor = new ModifierMonitor();
@@ -38,13 +40,20 @@ export class ShortcutManager {
 
       try {
         registered = globalShortcut.register(accelerator, () => {
-          if (
-            requiresAltGrGuard(accelerator) &&
-            !this.modifierMonitor.allowsExplicitShortcut()
-          ) {
+          const sendAction = () => {
+            this.windowManager.getWindow()?.webContents.send("timer:shortcut-action", action);
+          };
+
+          if (requiresAltGrGuard(accelerator)) {
+            setTimeout(() => {
+              if (this.modifierMonitor.allowsExplicitShortcut()) {
+                sendAction();
+              }
+            }, altGrDecisionDelayMs);
             return;
           }
-          this.windowManager.getWindow()?.webContents.send("timer:shortcut-action", action);
+
+          sendAction();
         });
       } catch (error) {
         console.warn(`Could not register ${accelerator}:`, error);
