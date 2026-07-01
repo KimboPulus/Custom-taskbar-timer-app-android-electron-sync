@@ -7,7 +7,6 @@ release/
 
 # Electron generated output
 desktop/native/bin/
-desktop/native/target/
 desktop/output/
 desktop/tmp/
 
