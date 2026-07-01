@@ -1,48 +1,50 @@
-import { existsSync, mkdirSync } from "node:fs";
+import { existsSync, mkdirSync, statSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const nativeRoot = path.join(root, "native");
-const outputDir = path.join(nativeRoot, "bin");
+const source = path.join(root, "native", "FocusTimerTaskbarHost.cs");
+const outputDir = path.join(root, "native", "bin");
 const output = path.join(outputDir, "FocusTimerTaskbarHost.exe");
+const compilerCandidates = [
+  "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\csc.exe",
+  "C:\\Windows\\Microsoft.NET\\Framework\\v4.0.30319\\csc.exe",
+];
+const compiler = compilerCandidates.find(existsSync);
 
 if (process.platform !== "win32") {
   console.log("Skipping Windows taskbar helper build on this platform.");
   process.exit(0);
 }
 
-const goCandidates = [
-  process.env.GOROOT && path.join(process.env.GOROOT, "bin", "go.exe"),
-  "D:\\tools\\go\\bin\\go.exe",
-  "go",
-].filter(Boolean);
-const go = goCandidates.find((candidate) => {
-  if (path.isAbsolute(candidate) && !existsSync(candidate)) {
-    return false;
-  }
-  return spawnSync(candidate, ["version"], { windowsHide: true }).status === 0;
-});
+if (!compiler) {
+  throw new Error("The Windows C# compiler was not found.");
+}
 
-if (!go) {
-  throw new Error("Go was not found. Install Go or set GOROOT before building.");
+if (
+  existsSync(output) &&
+  statSync(output).mtimeMs >= statSync(source).mtimeMs
+) {
+  console.log("Windows taskbar helper is up to date.");
+  process.exit(0);
 }
 
 mkdirSync(outputDir, { recursive: true });
 const result = spawnSync(
-  go,
-  ["build", "-trimpath", "-ldflags=-s -w", "-o", output, "."],
+  compiler,
+  [
+    "/nologo",
+    "/target:exe",
+    "/platform:x64",
+    "/optimize+",
+    `/out:${output}`,
+    source,
+  ],
   {
-    cwd: nativeRoot,
+    cwd: root,
     encoding: "utf8",
     windowsHide: true,
-    env: {
-      ...process.env,
-      CGO_ENABLED: "0",
-      GOOS: "windows",
-      GOARCH: "amd64",
-    },
   },
 );
 
