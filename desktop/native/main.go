@@ -1,11 +1,13 @@
 package main
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
 	"os"
 	"strconv"
 	"syscall"
+	"time"
 	"unsafe"
 )
 
@@ -48,6 +50,12 @@ func run(args []string) error {
 		}
 		return nil
 	}
+	if args[1] == "monitor-right-alt" {
+		if len(args) != 2 {
+			return errors.New("monitor-right-alt does not accept arguments")
+		}
+		return monitorRightAlt()
+	}
 
 	if len(args) < 3 {
 		return errors.New("expected attach or detach arguments")
@@ -67,6 +75,37 @@ func run(args []string) error {
 	default:
 		return errors.New("unknown taskbar helper command")
 	}
+}
+
+func monitorRightAlt() error {
+	output := bufio.NewWriter(os.Stdout)
+	lastState := rightAltDown()
+	if err := writeRightAltState(output, lastState); err != nil {
+		return err
+	}
+
+	for {
+		time.Sleep(5 * time.Millisecond)
+		currentState := rightAltDown()
+		if currentState == lastState {
+			continue
+		}
+		if err := writeRightAltState(output, currentState); err != nil {
+			return err
+		}
+		lastState = currentState
+	}
+}
+
+func writeRightAltState(output *bufio.Writer, down bool) error {
+	state := "up"
+	if down {
+		state = "down"
+	}
+	if _, err := fmt.Fprintln(output, state); err != nil {
+		return err
+	}
+	return output.Flush()
 }
 
 func rightAltDown() bool {

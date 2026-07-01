@@ -4,7 +4,7 @@ import type {
   ShortcutLabels,
 } from "../src/desktop/desktopTypes.js";
 import { requiresAltGrGuard } from "../src/desktop/shortcutPolicy.js";
-import { isExplicitShortcutAllowed } from "./taskbarHost.js";
+import { ModifierMonitor } from "./modifierMonitor.js";
 import type { WindowManager } from "./windowManager.js";
 
 const shortcutActions: Array<{
@@ -20,11 +20,13 @@ const shortcutActions: Array<{
 
 export class ShortcutManager {
   private warnings: string[] = [];
+  private readonly modifierMonitor = new ModifierMonitor();
 
   constructor(private readonly windowManager: WindowManager) {}
 
   register(labels: ShortcutLabels): string[] {
     globalShortcut.unregisterAll();
+    this.modifierMonitor.start();
     this.warnings = [];
 
     for (const { key, action } of shortcutActions) {
@@ -36,7 +38,10 @@ export class ShortcutManager {
 
       try {
         registered = globalShortcut.register(accelerator, () => {
-          if (requiresAltGrGuard(accelerator) && !isExplicitShortcutAllowed()) {
+          if (
+            requiresAltGrGuard(accelerator) &&
+            !this.modifierMonitor.allowsExplicitShortcut()
+          ) {
             return;
           }
           this.windowManager.getWindow()?.webContents.send("timer:shortcut-action", action);
@@ -61,5 +66,6 @@ export class ShortcutManager {
 
   unregisterAll(): void {
     globalShortcut.unregisterAll();
+    this.modifierMonitor.stop();
   }
 }

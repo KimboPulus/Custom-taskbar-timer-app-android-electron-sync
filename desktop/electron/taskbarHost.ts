@@ -1,5 +1,5 @@
 import { app, type BrowserWindow } from "electron";
-import { execFile, spawnSync } from "node:child_process";
+import { execFile } from "node:child_process";
 import path from "node:path";
 
 function getWindowHandle(window: BrowserWindow): string {
@@ -9,7 +9,7 @@ function getWindowHandle(window: BrowserWindow): string {
     : handle.readUInt32LE(0).toString();
 }
 
-function getHelperPath(): string {
+export function getTaskbarHelperPath(): string {
   return app.isPackaged
     ? path.join(
         process.resourcesPath,
@@ -27,7 +27,7 @@ function getHelperPath(): string {
 function runHelper(args: string[]): Promise<void> {
   return new Promise((resolve, reject) => {
     execFile(
-      getHelperPath(),
+      getTaskbarHelperPath(),
       args,
       { windowsHide: true },
       (error, _stdout, stderr) => {
@@ -39,24 +39,6 @@ function runHelper(args: string[]): Promise<void> {
       },
     );
   });
-}
-
-export function isExplicitShortcutAllowed(): boolean {
-  if (process.platform !== "win32") {
-    return true;
-  }
-
-  const result = spawnSync(getHelperPath(), ["allow-shortcut"], {
-    windowsHide: true,
-    timeout: 500,
-  });
-
-  if (result.error) {
-    console.warn("Could not verify shortcut modifier state:", result.error);
-    return true;
-  }
-
-  return result.status === 0;
 }
 
 export async function embedInWindowsTaskbar(

@@ -11,6 +11,7 @@ func TestRunRejectsInvalidArguments(t *testing.T) {
 		{name: "invalid handle", args: []string{"helper", "detach", "invalid"}},
 		{name: "unknown command", args: []string{"helper", "unknown", "1"}},
 		{name: "shortcut arguments", args: []string{"helper", "allow-shortcut", "extra"}},
+		{name: "monitor arguments", args: []string{"helper", "monitor-right-alt", "extra"}},
 	}
 
 	for _, test := range tests {
