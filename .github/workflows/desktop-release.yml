@@ -42,12 +42,9 @@ jobs:
           cache: npm
           cache-dependency-path: desktop/package-lock.json
 
-      - name: Setup Go
+      - name: Setup MSVC
         if: runner.os == 'Windows'
-        uses: actions/setup-go@v5
-        with:
-          go-version: '1.26.4'
-          cache: false
+        uses: ilammy/msvc-dev-cmd@v1
 
       - name: Install Linux packaging tools
         if: runner.os == 'Linux'
