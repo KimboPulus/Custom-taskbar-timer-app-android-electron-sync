@@ -84,8 +84,8 @@ Desktop installers are published from GitHub Releases:
 To publish a new desktop release, push a tag that starts with `desktop-v`:
 
 ```powershell
-git tag desktop-v1.6.5
-git push origin desktop-v1.6.5
+git tag desktop-v1.6.6
+git push origin desktop-v1.6.6
 ```
 
 ## Android Development
