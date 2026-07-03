@@ -6,13 +6,16 @@ import {
   getDailyPlanYearStats,
   getLocalDateKey,
   getNextPastDailyPlanStatus,
+  setPastDailyPlanDateStatus,
   togglePastDailyPlanDate,
 } from "../dailyPlan/dailyPlan";
+import { getRandomProQuote } from "../dailyPlan/proQuotes";
 import type { DailyPlanSettings } from "../desktop/desktopTypes";
 import { FlameIcon } from "./icons";
 
 type DailyPlanPanelProps = {
   plan: DailyPlanSettings;
+  proModeEnabled: boolean;
   onClose: () => void;
   onSave: (plan: DailyPlanSettings) => Promise<void>;
 };
@@ -54,6 +57,7 @@ function getCalendarDays(year: number, month: number) {
 
 export function DailyPlanPanel({
   plan,
+  proModeEnabled,
   onClose,
   onSave,
 }: DailyPlanPanelProps) {
@@ -68,6 +72,7 @@ export function DailyPlanPanel({
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const [streakPopup, setStreakPopup] = useState<number | null>(null);
+  const [proQuote] = useState(getRandomProQuote);
 
   useEffect(() => {
     setTitle(plan.title);
@@ -130,9 +135,7 @@ export function DailyPlanPanel({
     };
     const nextStreak = getCurrentDailyPlanStreak(nextPlan, todayKey);
 
-    setSaving(true);
     await onSave(nextPlan);
-    setSaving(false);
 
     if (
       todayStatus !== "completed" &&
@@ -151,9 +154,15 @@ export function DailyPlanPanel({
       return;
     }
 
-    setSaving(true);
     await onSave(togglePastDailyPlanDate(plan, dateKey));
-    setSaving(false);
+  };
+
+  const neutralizePastDate = async (dateKey: string) => {
+    if (!configured || dateKey >= todayKey) {
+      return;
+    }
+
+    await onSave(setPastDailyPlanDateStatus(plan, dateKey, "neutral"));
   };
 
   return (
@@ -278,6 +287,12 @@ export function DailyPlanPanel({
         </div>
 
         <section className="daily-plan-history" aria-labelledby="history-title">
+          {proModeEnabled && (
+            <blockquote className="daily-plan-pro-quote">
+              <span>Pro mode</span>
+              <p>"{proQuote}"</p>
+            </blockquote>
+          )}
           <div className="daily-plan-history__header">
             <div>
               <span className="daily-plan-kicker">History</span>
@@ -318,7 +333,7 @@ export function DailyPlanPanel({
             <span className="daily-plan-legend__neutral">Neutral</span>
             <span className="daily-plan-legend__pending">Today</span>
             <span className="daily-plan-legend__hint">
-              Click a past day to cycle success, failed, neutral
+              Left-click to cycle status. Right-click to mark neutral.
             </span>
           </div>
 
@@ -358,7 +373,7 @@ export function DailyPlanPanel({
                       dateKey,
                     );
                     const label = editable
-                      ? `${fullDateFormatter.format(date)}: ${status}. Click to mark ${nextStatus}.`
+                      ? `${fullDateFormatter.format(date)}: ${status}. Left-click to mark ${nextStatus}; right-click to mark neutral.`
                       : `${fullDateFormatter.format(date)}: ${status}`;
                     const className = `calendar-day calendar-day--${status} ${
                       isToday ? "calendar-day--today" : ""
@@ -372,6 +387,10 @@ export function DailyPlanPanel({
                         title={label}
                         disabled={saving}
                         onClick={() => void togglePastDate(dateKey)}
+                        onContextMenu={(event) => {
+                          event.preventDefault();
+                          void neutralizePastDate(dateKey);
+                        }}
                         key={dateKey}
                       >
                         {day}

@@ -50,6 +50,7 @@ export function SettingsPanel({
   onClose,
   onSave,
 }: SettingsPanelProps) {
+  const launchAtStartupSupported = /Windows/i.test(navigator.userAgent);
   const [shortcuts, setShortcuts] = useState(settings.shortcutLabels);
   const [systemSounds, setSystemSounds] = useState<SystemSoundOption[]>([]);
   const [saved, setSaved] = useState(false);
@@ -298,6 +299,29 @@ export function SettingsPanel({
             <option value="light">Light</option>
             <option value="dark">Dark</option>
           </select>
+        </div>
+
+        <div className="setting-row setting-row--taskbar">
+          <div>
+            <strong>Launch at startup</strong>
+            <p>
+              {launchAtStartupSupported
+                ? "Start Focus Timer automatically when you sign in to Windows."
+                : "Launch at startup is currently available on Windows."}
+            </p>
+          </div>
+          <label className="switch">
+            <input
+              type="checkbox"
+              aria-label="Launch Focus Timer at startup"
+              checked={settings.launchAtStartup}
+              disabled={!launchAtStartupSupported}
+              onChange={(event) =>
+                void onSave({ launchAtStartup: event.target.checked })
+              }
+            />
+            <span />
+          </label>
         </div>
 
         <div className="setting-row setting-row--taskbar">

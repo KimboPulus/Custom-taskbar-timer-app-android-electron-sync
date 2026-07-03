@@ -145,18 +145,29 @@ export function togglePastDailyPlanDate(
   plan: DailyPlanSettings,
   dateKey: string,
 ): DailyPlanSettings {
+  return setPastDailyPlanDateStatus(
+    plan,
+    dateKey,
+    getNextPastDailyPlanStatus(plan, dateKey),
+  );
+}
+
+export function setPastDailyPlanDateStatus(
+  plan: DailyPlanSettings,
+  dateKey: string,
+  status: ManualDailyPlanDayStatus,
+): DailyPlanSettings {
   const completedDates = new Set(plan.completedDates);
   const failedDates = new Set(plan.failedDates);
   const neutralDates = new Set(plan.neutralDates);
-  const nextStatus = getNextPastDailyPlanStatus(plan, dateKey);
 
   completedDates.delete(dateKey);
   failedDates.delete(dateKey);
   neutralDates.delete(dateKey);
 
-  if (nextStatus === "completed") {
+  if (status === "completed") {
     completedDates.add(dateKey);
-  } else if (nextStatus === "failed") {
+  } else if (status === "failed") {
     failedDates.add(dateKey);
   } else {
     neutralDates.add(dateKey);

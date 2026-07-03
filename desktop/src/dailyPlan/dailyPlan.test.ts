@@ -7,6 +7,7 @@ import {
   getDailyPlanDayStatus,
   getDailyPlanYearStats,
   getLocalDateKey,
+  setPastDailyPlanDateStatus,
   togglePastDailyPlanDate,
 } from "./dailyPlan";
 
@@ -144,6 +145,24 @@ describe("daily plan", () => {
     expect(
       getDailyPlanDayStatus("2026-06-11", completedAgain, "2026-06-14"),
     ).toBe("completed");
+  });
+
+  it("sets a past date directly to neutral", () => {
+    const failedPlan: DailyPlanSettings = {
+      ...plan,
+      failedDates: ["2026-06-11"],
+    };
+    const neutralPlan = setPastDailyPlanDateStatus(
+      failedPlan,
+      "2026-06-11",
+      "neutral",
+    );
+
+    expect(
+      getDailyPlanDayStatus("2026-06-11", neutralPlan, "2026-06-14"),
+    ).toBe("neutral");
+    expect(neutralPlan.completedDates).not.toContain("2026-06-11");
+    expect(neutralPlan.failedDates).not.toContain("2026-06-11");
   });
 
   it("counts a streak through today when today is complete", () => {

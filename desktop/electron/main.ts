@@ -1,5 +1,6 @@
 import { app } from "electron";
 import { registerIpcHandlers } from "./ipc.js";
+import { applyLaunchAtStartup } from "./loginItem.js";
 import { SettingsStore } from "./settingsStore.js";
 import { ShortcutManager } from "./shortcuts.js";
 import { SyncServer } from "./syncServer.js";
@@ -33,6 +34,7 @@ if (hasSingleInstanceLock) {
   app.whenReady().then(async () => {
     settingsStore = new SettingsStore();
     await settingsStore.load();
+    applyLaunchAtStartup(settingsStore.get().launchAtStartup);
 
     windowManager = new WindowManager(settingsStore);
     shortcutManager = new ShortcutManager(windowManager);

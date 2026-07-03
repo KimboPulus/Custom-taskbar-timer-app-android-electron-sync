@@ -14,6 +14,7 @@ import type {
 } from "../src/desktop/desktopTypes.js";
 
 const supportsWindowsTaskbarMode = process.platform === "win32";
+const supportsLaunchAtStartup = process.platform === "win32";
 const startsFullWhenRestoring = process.platform === "linux";
 
 export const defaultSettings: AppSettings = {
@@ -33,6 +34,7 @@ export const defaultSettings: AppSettings = {
   ],
   windowMode: "full",
   taskbarModeEnabled: supportsWindowsTaskbarMode,
+  launchAtStartup: false,
   proModeEnabled: false,
   compactPosition: null,
   soundEnabled: true,
@@ -281,6 +283,8 @@ export class SettingsStore {
             ? "full"
             : restoredWindowMode,
         taskbarModeEnabled,
+        launchAtStartup:
+          supportsLaunchAtStartup && stored.launchAtStartup === true,
         proModeEnabled:
           typeof stored.proModeEnabled === "boolean"
             ? stored.proModeEnabled
@@ -335,6 +339,9 @@ export class SettingsStore {
       false,
       taskbarModeEnabled,
     );
+    const launchAtStartup =
+      supportsLaunchAtStartup &&
+      (patch.launchAtStartup ?? this.settings.launchAtStartup);
 
     this.settings = {
       ...this.settings,
@@ -358,6 +365,7 @@ export class SettingsStore {
           : normalizeDailyPlan(patch.dailyPlan),
       windowMode,
       taskbarModeEnabled,
+      launchAtStartup,
     };
 
     await this.persist();

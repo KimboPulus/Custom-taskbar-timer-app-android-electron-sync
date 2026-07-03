@@ -9,6 +9,7 @@ import {
   listSystemSounds,
   resolveAlarmUrl,
 } from "./media.js";
+import { applyLaunchAtStartup } from "./loginItem.js";
 import type { SettingsStore } from "./settingsStore.js";
 import type { ShortcutManager } from "./shortcuts.js";
 import type { SyncServer } from "./syncServer.js";
@@ -45,6 +46,10 @@ export function registerIpcHandlers(
     const previous = settingsStore.get();
     const next = await settingsStore.update(patch);
     syncServer.markLocalSettingsPatch(patch);
+
+    if (patch.launchAtStartup !== undefined) {
+      applyLaunchAtStartup(next.launchAtStartup);
+    }
 
     if (
       patch.shortcutLabels &&

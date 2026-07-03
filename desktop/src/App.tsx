@@ -36,6 +36,7 @@ const fallbackSettings: AppSettings = {
   ],
   windowMode: "full",
   taskbarModeEnabled: true,
+  launchAtStartup: false,
   proModeEnabled: false,
   compactPosition: null,
   soundEnabled: true,
@@ -75,10 +76,22 @@ export default function App() {
   const [modeTransitionId, setModeTransitionId] = useState<number>();
   const timer = useTimerStore(fallbackSettings.selectedDurationMs);
   const previousStatus = useRef(timer.state.status);
+  const settingsSaveSequence = useRef(0);
 
   const saveSettings = useCallback(async (patch: Partial<AppSettings>) => {
+    const saveSequence = ++settingsSaveSequence.current;
+    setSettings((current) => ({
+      ...current,
+      ...patch,
+      shortcutLabels: patch.shortcutLabels
+        ? { ...current.shortcutLabels, ...patch.shortcutLabels }
+        : current.shortcutLabels,
+      dailyPlan: patch.dailyPlan ?? current.dailyPlan,
+    }));
     const saved = await electronApi.saveSettings(patch);
-    setSettings(saved);
+    if (saveSequence === settingsSaveSequence.current) {
+      setSettings(saved);
+    }
     setShortcutWarnings(await electronApi.getShortcutWarnings());
   }, []);
 
@@ -106,6 +119,7 @@ export default function App() {
   useEffect(
     () =>
       electronApi.onRemoteSettingsApplied((remoteSettings) => {
+        settingsSaveSequence.current += 1;
         setSettings(remoteSettings);
         setWindowMode(remoteSettings.windowMode);
         setModeTransitionId(undefined);
@@ -327,6 +341,7 @@ export default function App() {
       {dailyPlanOpen && windowMode === "full" && (
         <DailyPlanPanel
           plan={settings.dailyPlan}
+          proModeEnabled={settings.proModeEnabled}
           onClose={() => setDailyPlanOpen(false)}
           onSave={(dailyPlan) => saveSettings({ dailyPlan })}
         />
