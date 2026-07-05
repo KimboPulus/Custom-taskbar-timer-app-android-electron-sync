@@ -45,7 +45,7 @@ export function registerIpcHandlers(
   ipcMain.handle("settings:save", async (_event, patch: Partial<AppSettings>) => {
     const previous = settingsStore.get();
     const next = await settingsStore.update(patch);
-    syncServer.markLocalSettingsPatch(patch);
+    syncServer.markLocalSettingsPatch(patch, previous);
 
     if (patch.launchAtStartup !== undefined) {
       applyLaunchAtStartup(next.launchAtStartup);

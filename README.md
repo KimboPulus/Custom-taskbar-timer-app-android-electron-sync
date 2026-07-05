@@ -125,7 +125,7 @@ Example:
 http://192.168.0.55:5278
 ```
 
-The desktop app hosts the local sync API. The Android app pushes its current state and receives the merged desktop snapshot back.
+The desktop app hosts the local sync API. The Android app pushes its current state and receives the merged desktop snapshot back. Daily-plan dates are merged independently, so adding or changing one day on a stale device does not replace history from the other device.
 
 ## Notes
 

@@ -11,6 +11,7 @@ http://<your-pc-ip>:5278
 ```
 
 The mobile app stores timer/plan state locally, auto-syncs when opened/resumed, and can manually sync with `Sync now`.
+Daily-plan dates use per-day timestamps: the newest edit wins only for that date, while unrelated history from both devices is preserved.
 
 No Firebase, no cloud sync, no third-party service.
 

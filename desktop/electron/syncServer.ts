@@ -7,10 +7,17 @@ import type {
   DailyPlanSettings,
   PersistedTimerState,
 } from "../src/desktop/desktopTypes.js";
+import {
+  applyDateRecordsToDailyPlan,
+  getExplicitDailyPlanDates,
+  getExplicitDailyPlanStatus,
+  isSyncRevisionNewer,
+  mergeDailyPlanDateRecords,
+  type SyncDailyPlanDateStatus,
+} from "../src/sync/dailyPlanSync.js";
 import type { SettingsStore } from "./settingsStore.js";
 
 type SyncTimerStatus = "Idle" | "Running" | "Paused" | "Finished";
-type SyncDailyPlanStatus = "Completed" | "Failed" | "Neutral";
 
 type SyncTimerState = {
   durationMs: number;
@@ -18,13 +25,6 @@ type SyncTimerState = {
   status: SyncTimerStatus;
   startedAt: string | null;
   pausedRemainingMs: number | null;
-  modifiedAt: string;
-  modifiedBy: string;
-};
-
-type SyncDailyPlanDateStatus = {
-  date: string;
-  status: SyncDailyPlanStatus;
   modifiedAt: string;
   modifiedBy: string;
 };
@@ -80,6 +80,8 @@ type SyncMeta = {
   version: number;
   timerModifiedAt: string;
   dailyPlanModifiedAt: string;
+  dailyPlanModifiedBy: string;
+  dailyPlanDates: Record<string, SyncDailyPlanDateStatus>;
   focusPresetsModifiedAt: string;
   appSettingsModifiedAt: string;
 };
@@ -137,6 +139,8 @@ function createEmptyMeta(): SyncMeta {
     version: 0,
     timerModifiedAt: createdAt,
     dailyPlanModifiedAt: createdAt,
+    dailyPlanModifiedBy: syncDeviceId,
+    dailyPlanDates: {},
     focusPresetsModifiedAt: createdAt,
     appSettingsModifiedAt: createdAt,
   };
@@ -192,11 +196,20 @@ export class SyncServer {
   async load(): Promise<void> {
     try {
       const raw = await fs.readFile(this.metaPath, "utf8");
-      this.meta = { ...createEmptyMeta(), ...(JSON.parse(raw) as Partial<SyncMeta>) };
+      const stored = JSON.parse(raw) as Partial<SyncMeta>;
+      this.meta = {
+        ...createEmptyMeta(),
+        ...stored,
+        dailyPlanDates: stored.dailyPlanDates ?? {},
+      };
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
         console.warn("Could not load sync metadata:", error);
       }
+    }
+
+    if (this.ensureDailyPlanDateMeta(this.settingsStore.get().dailyPlan)) {
+      this.scheduleMetaSave();
     }
   }
 
@@ -230,7 +243,10 @@ export class SyncServer {
     this.server = null;
   }
 
-  markLocalSettingsPatch(patch: Partial<AppSettings>): void {
+  markLocalSettingsPatch(
+    patch: Partial<AppSettings>,
+    previousSettings: AppSettings,
+  ): void {
     let changed = false;
     const modifiedAt = nowIso();
 
@@ -239,8 +255,36 @@ export class SyncServer {
       changed = true;
     }
     if (patch.dailyPlan) {
-      this.meta.dailyPlanModifiedAt = modifiedAt;
-      changed = true;
+      const previousPlan = previousSettings.dailyPlan;
+      const nextPlan = this.settingsStore.get().dailyPlan;
+      const dates = new Set([
+        ...getExplicitDailyPlanDates(previousPlan),
+        ...getExplicitDailyPlanDates(nextPlan),
+      ]);
+
+      for (const date of dates) {
+        const previousStatus = getExplicitDailyPlanStatus(previousPlan, date);
+        const nextStatus = getExplicitDailyPlanStatus(nextPlan, date);
+        if (previousStatus !== nextStatus) {
+          this.meta.dailyPlanDates[date] = {
+            date,
+            status: nextStatus,
+            modifiedAt,
+            modifiedBy: syncDeviceId,
+          };
+          changed = true;
+        }
+      }
+
+      if (
+        previousPlan.title !== nextPlan.title ||
+        previousPlan.targetMinutes !== nextPlan.targetMinutes ||
+        previousPlan.startDate !== nextPlan.startDate
+      ) {
+        this.meta.dailyPlanModifiedAt = modifiedAt;
+        this.meta.dailyPlanModifiedBy = syncDeviceId;
+        changed = true;
+      }
     }
     if (patch.focusPresets) {
       this.meta.focusPresetsModifiedAt = modifiedAt;
@@ -336,7 +380,7 @@ export class SyncServer {
         startDate: settings.dailyPlan.startDate,
         dates: this.createDailyPlanDates(settings.dailyPlan),
         modifiedAt: this.meta.dailyPlanModifiedAt,
-        modifiedBy: syncDeviceId,
+        modifiedBy: this.meta.dailyPlanModifiedBy,
       },
       focusPresets: settings.focusPresets.map((durationMs) => ({
         durationMs,
@@ -355,26 +399,10 @@ export class SyncServer {
   }
 
   private createDailyPlanDates(plan: DailyPlanSettings): SyncDailyPlanDateStatus[] {
-    return [
-      ...plan.completedDates.map((date) => ({
-        date,
-        status: "Completed" as const,
-        modifiedAt: this.meta.dailyPlanModifiedAt,
-        modifiedBy: syncDeviceId,
-      })),
-      ...plan.failedDates.map((date) => ({
-        date,
-        status: "Failed" as const,
-        modifiedAt: this.meta.dailyPlanModifiedAt,
-        modifiedBy: syncDeviceId,
-      })),
-      ...plan.neutralDates.map((date) => ({
-        date,
-        status: "Neutral" as const,
-        modifiedAt: this.meta.dailyPlanModifiedAt,
-        modifiedBy: syncDeviceId,
-      })),
-    ].sort((left, right) => left.date.localeCompare(right.date));
+    this.ensureDailyPlanDateMeta(plan);
+    return Object.values(this.meta.dailyPlanDates).sort((left, right) =>
+      left.date.localeCompare(right.date),
+    );
   }
 
   private async applyPush(request: SyncPushRequest): Promise<SyncPushResponse> {
@@ -391,13 +419,49 @@ export class SyncServer {
       changed = true;
     }
 
-    if (
-      request.dailyPlan &&
-      isRemoteNewer(request.dailyPlan.modifiedAt, this.meta.dailyPlanModifiedAt)
-    ) {
-      patch.dailyPlan = this.fromSyncDailyPlan(request.dailyPlan);
-      this.meta.dailyPlanModifiedAt = request.dailyPlan.modifiedAt;
-      changed = true;
+    if (request.dailyPlan) {
+      const currentPlan = this.settingsStore.get().dailyPlan;
+      this.ensureDailyPlanDateMeta(currentPlan);
+      let nextPlan = currentPlan;
+      let dailyPlanChanged = false;
+
+      if (
+        isSyncRevisionNewer(
+          { ...request.dailyPlan, status: "Unset" },
+          {
+            modifiedAt: this.meta.dailyPlanModifiedAt,
+            modifiedBy: this.meta.dailyPlanModifiedBy,
+            status: "Unset",
+          },
+        )
+      ) {
+        nextPlan = {
+          ...nextPlan,
+          title: request.dailyPlan.title,
+          targetMinutes: request.dailyPlan.targetMinutes,
+          startDate: request.dailyPlan.startDate,
+        };
+        this.meta.dailyPlanModifiedAt = request.dailyPlan.modifiedAt;
+        this.meta.dailyPlanModifiedBy = request.dailyPlan.modifiedBy;
+        dailyPlanChanged = true;
+      }
+
+      const mergedDates = mergeDailyPlanDateRecords(
+        Object.values(this.meta.dailyPlanDates),
+        request.dailyPlan.dates,
+      );
+      if (mergedDates.changed) {
+        this.meta.dailyPlanDates = Object.fromEntries(
+          mergedDates.records.map((record) => [record.date, record]),
+        );
+        nextPlan = applyDateRecordsToDailyPlan(nextPlan, mergedDates.records);
+        dailyPlanChanged = true;
+      }
+
+      if (dailyPlanChanged) {
+        patch.dailyPlan = nextPlan;
+        changed = true;
+      }
     }
 
     if (
@@ -464,35 +528,20 @@ export class SyncServer {
     };
   }
 
-  private fromSyncDailyPlan(plan: SyncDailyPlanState): DailyPlanSettings {
-    const completedDates = new Set<string>();
-    const failedDates = new Set<string>();
-    const neutralDates = new Set<string>();
-
-    for (const day of plan.dates) {
-      if (day.status === "Completed") {
-        completedDates.add(day.date);
-        failedDates.delete(day.date);
-        neutralDates.delete(day.date);
-      } else if (day.status === "Failed") {
-        failedDates.add(day.date);
-        completedDates.delete(day.date);
-        neutralDates.delete(day.date);
-      } else {
-        completedDates.delete(day.date);
-        failedDates.delete(day.date);
-        neutralDates.add(day.date);
+  private ensureDailyPlanDateMeta(plan: DailyPlanSettings): boolean {
+    let changed = false;
+    for (const date of getExplicitDailyPlanDates(plan)) {
+      if (!this.meta.dailyPlanDates[date]) {
+        this.meta.dailyPlanDates[date] = {
+          date,
+          status: getExplicitDailyPlanStatus(plan, date),
+          modifiedAt: this.meta.dailyPlanModifiedAt,
+          modifiedBy: this.meta.dailyPlanModifiedBy,
+        };
+        changed = true;
       }
     }
-
-    return {
-      title: plan.title,
-      targetMinutes: plan.targetMinutes,
-      startDate: plan.startDate,
-      completedDates: [...completedDates].sort(),
-      failedDates: [...failedDates].sort(),
-      neutralDates: [...neutralDates].sort(),
-    };
+    return changed;
   }
 
   private scheduleMetaSave(): void {

@@ -13,7 +13,8 @@ import {
 import {SafeAreaView} from 'react-native-safe-area-context';
 
 type TimerStatus = 'Idle' | 'Running' | 'Paused' | 'Finished';
-type DailyPlanStatus = 'Completed' | 'Failed' | 'Neutral';
+type DailyPlanStatus = 'Completed' | 'Failed' | 'Neutral' | 'Unset';
+type ManualDailyPlanStatus = Exclude<DailyPlanStatus, 'Unset'>;
 
 type TimerSyncState = {
   durationMs: number;
@@ -178,7 +179,7 @@ function isDateKey(value: string): boolean {
 
 function nextManualDailyPlanStatus(
   currentStatus: DailyPlanStatus | null,
-): DailyPlanStatus {
+): ManualDailyPlanStatus {
   return currentStatus === 'Completed'
     ? 'Failed'
     : currentStatus === 'Failed'
@@ -408,26 +409,27 @@ export default function App() {
     });
   };
 
-  const setDayStatus = (date: string, status: DailyPlanStatus) => {
+  const setDayStatus = (date: string, status: ManualDailyPlanStatus) => {
     if (!isDateKey(date)) {
       setSelectedDate(localDateKey());
       return;
     }
 
     updateSnapshot(draft => {
+      const modifiedAt = nowIso();
       draft.dailyPlan.dates = draft.dailyPlan.dates.filter(day => day.date !== date);
       draft.dailyPlan.dates.push({
         date,
         status,
-        modifiedAt: nowIso(),
+        modifiedAt,
         modifiedBy: deviceId,
       });
       draft.dailyPlan.dates.sort((left, right) => left.date.localeCompare(right.date));
       if (!draft.dailyPlan.startDate || date < draft.dailyPlan.startDate) {
         draft.dailyPlan.startDate = date;
+        draft.dailyPlan.modifiedAt = modifiedAt;
+        draft.dailyPlan.modifiedBy = deviceId;
       }
-      draft.dailyPlan.modifiedAt = nowIso();
-      draft.dailyPlan.modifiedBy = deviceId;
     });
   };
 
@@ -536,7 +538,10 @@ export default function App() {
             />
           </View>
           <Text style={styles.syncText}>
-            {selectedDate}: {selectedDay ? selectedDay.status.toLowerCase() : 'not marked'}
+            {selectedDate}:{' '}
+            {selectedDay && selectedDay.status !== 'Unset'
+              ? selectedDay.status.toLowerCase()
+              : 'not marked'}
           </Text>
         </View>
       </ScrollView>
