@@ -10,12 +10,7 @@ const browserSettings: AppSettings = {
     startedAt: null,
     pausedRemainingMs: null,
   },
-  focusPresets: [
-    5 * 60 * 1000,
-    25 * 60 * 1000,
-    50 * 60 * 1000,
-    2 * 60 * 60 * 1000,
-  ],
+  focusPresets: [],
   windowMode: "full",
   taskbarModeEnabled: true,
   launchAtStartup: false,
@@ -24,6 +19,7 @@ const browserSettings: AppSettings = {
   soundEnabled: true,
   pauseSoundEnabled: true,
   resumeSoundEnabled: true,
+  clickSoundVolume: 0.18,
   alarmSound: {
     kind: "built-in",
     id: "gentle-chime",
@@ -89,6 +85,8 @@ const browserFallback: ElectronAPI = {
   ],
   chooseCustomMedia: async () => null,
   resolveAlarmUrl: async () => null,
+  exportDailyPlanHistory: async () => ({ canceled: true }),
+  importDailyPlanHistory: async () => ({ canceled: true }),
   notifyTimerFinished: () => undefined,
   onRemoteSettingsApplied: () => () => undefined,
 };

@@ -60,6 +60,18 @@ export type DailyPlanSettings = {
   neutralDates: string[];
 };
 
+export type DailyPlanHistoryExportResult = {
+  canceled: boolean;
+  filePath?: string;
+  error?: string;
+};
+
+export type DailyPlanHistoryImportResult = {
+  canceled: boolean;
+  plan?: DailyPlanSettings;
+  error?: string;
+};
+
 export type AppSettings = {
   selectedDurationMs: number;
   timerState: PersistedTimerState;
@@ -72,6 +84,7 @@ export type AppSettings = {
   soundEnabled: boolean;
   pauseSoundEnabled: boolean;
   resumeSoundEnabled: boolean;
+  clickSoundVolume: number;
   alarmSound: AlarmSound;
   alarmVolume: number;
   theme: ThemePreference;
@@ -101,6 +114,10 @@ export type ElectronAPI = {
   listSystemSounds: () => Promise<SystemSoundOption[]>;
   chooseCustomMedia: () => Promise<AlarmSound | null>;
   resolveAlarmUrl: (sound: AlarmSound) => Promise<string | null>;
+  exportDailyPlanHistory: (
+    plan: DailyPlanSettings,
+  ) => Promise<DailyPlanHistoryExportResult>;
+  importDailyPlanHistory: () => Promise<DailyPlanHistoryImportResult>;
   notifyTimerFinished: () => void;
   onRemoteSettingsApplied: (callback: (settings: AppSettings) => void) => () => void;
 };

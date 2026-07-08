@@ -50,7 +50,10 @@ function playGentleChime(volume: number): void {
   stopTimer = window.setTimeout(stopAlarm, 3_000);
 }
 
-export function playTimerClick(kind: "pause" | "resume"): void {
+export function playTimerClick(
+  kind: "pause" | "resume",
+  volume = 0.18,
+): void {
   const context = clickContext ?? new AudioContext();
   clickContext = context;
   if (context.state === "suspended") {
@@ -59,6 +62,7 @@ export function playTimerClick(kind: "pause" | "resume"): void {
   const start = context.currentTime;
   const gain = context.createGain();
   const oscillator = context.createOscillator();
+  const normalizedVolume = Math.min(1, Math.max(0, volume));
 
   oscillator.type = "triangle";
   oscillator.frequency.setValueAtTime(kind === "pause" ? 410 : 520, start);
@@ -68,7 +72,10 @@ export function playTimerClick(kind: "pause" | "resume"): void {
   );
 
   gain.gain.setValueAtTime(0.0001, start);
-  gain.gain.exponentialRampToValueAtTime(0.15, start + 0.006);
+  gain.gain.exponentialRampToValueAtTime(
+    Math.max(0.0001, normalizedVolume),
+    start + 0.006,
+  );
   gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.09);
 
   oscillator.connect(gain);

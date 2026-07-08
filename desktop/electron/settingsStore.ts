@@ -26,12 +26,7 @@ export const defaultSettings: AppSettings = {
     startedAt: null,
     pausedRemainingMs: null,
   },
-  focusPresets: [
-    5 * 60 * 1000,
-    25 * 60 * 1000,
-    50 * 60 * 1000,
-    2 * 60 * 60 * 1000,
-  ],
+  focusPresets: [],
   windowMode: "full",
   taskbarModeEnabled: supportsWindowsTaskbarMode,
   launchAtStartup: false,
@@ -40,6 +35,7 @@ export const defaultSettings: AppSettings = {
   soundEnabled: true,
   pauseSoundEnabled: true,
   resumeSoundEnabled: true,
+  clickSoundVolume: 0.18,
   alarmSound: {
     kind: "built-in",
     id: "gentle-chime",
@@ -254,10 +250,7 @@ export class SettingsStore {
       const { compactMode, customPresets, ...storedSettings } = stored;
       const migratedPresets =
         stored.focusPresets === undefined
-          ? normalizePresets([
-              ...defaultSettings.focusPresets,
-              ...(customPresets ?? []),
-            ])
+          ? normalizePresets(customPresets ?? [])
           : normalizePresets(stored.focusPresets);
       const selectedDurationMs =
         Number.isFinite(stored.selectedDurationMs) &&
@@ -310,6 +303,9 @@ export class SettingsStore {
             : typeof stored.pauseSoundEnabled === "boolean"
               ? stored.pauseSoundEnabled
               : defaultSettings.resumeSoundEnabled,
+        clickSoundVolume: Number.isFinite(stored.clickSoundVolume)
+          ? Math.min(1, Math.max(0, stored.clickSoundVolume as number))
+          : defaultSettings.clickSoundVolume,
         shortcutLabels: {
           ...defaultSettings.shortcutLabels,
           ...stored.shortcutLabels,
@@ -353,6 +349,10 @@ export class SettingsStore {
         patch.alarmVolume === undefined
           ? this.settings.alarmVolume
           : Math.min(1, Math.max(0, patch.alarmVolume)),
+      clickSoundVolume:
+        patch.clickSoundVolume === undefined
+          ? this.settings.clickSoundVolume
+          : Math.min(1, Math.max(0, patch.clickSoundVolume)),
       shortcutLabels: patch.shortcutLabels
         ? { ...this.settings.shortcutLabels, ...patch.shortcutLabels }
         : this.settings.shortcutLabels,

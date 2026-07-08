@@ -1,9 +1,21 @@
-import { ipcMain, Notification } from "electron";
+import {
+  dialog,
+  ipcMain,
+  Notification,
+  type OpenDialogOptions,
+  type SaveDialogOptions,
+} from "electron";
+import { promises as fs } from "node:fs";
 import type {
   AppSettings,
+  DailyPlanSettings,
   PersistedTimerState,
   WindowMode,
 } from "../src/desktop/desktopTypes.js";
+import {
+  createDailyPlanHistoryFile,
+  parseDailyPlanHistoryFile,
+} from "../src/dailyPlan/historyFile.js";
 import {
   chooseCustomMedia,
   listSystemSounds,
@@ -72,6 +84,77 @@ export function registerIpcHandlers(
   ipcMain.handle("media:resolve-url", (_event, sound) =>
     resolveAlarmUrl(sound),
   );
+  ipcMain.handle(
+    "daily-plan:export-history",
+    async (_event, plan: DailyPlanSettings) => {
+      try {
+        const owner = windowManager.getWindow();
+        const options: SaveDialogOptions = {
+          title: "Export daily plan history",
+          defaultPath: "focus-timer-daily-plan-history.json",
+          filters: [
+            { name: "Focus Timer history", extensions: ["json"] },
+            { name: "All files", extensions: ["*"] },
+          ],
+        };
+        const result = owner
+          ? await dialog.showSaveDialog(owner, options)
+          : await dialog.showSaveDialog(options);
+
+        if (result.canceled || !result.filePath) {
+          return { canceled: true };
+        }
+
+        const history = createDailyPlanHistoryFile(plan);
+        await fs.writeFile(
+          result.filePath,
+          `${JSON.stringify(history, null, 2)}\n`,
+          "utf8",
+        );
+        return { canceled: false, filePath: result.filePath };
+      } catch (error) {
+        return {
+          canceled: false,
+          error:
+            error instanceof Error
+              ? error.message
+              : "Could not export daily plan history.",
+        };
+      }
+    },
+  );
+  ipcMain.handle("daily-plan:import-history", async () => {
+    try {
+      const owner = windowManager.getWindow();
+      const options: OpenDialogOptions = {
+        title: "Import daily plan history",
+        properties: ["openFile"],
+        filters: [
+          { name: "Focus Timer history", extensions: ["json"] },
+          { name: "All files", extensions: ["*"] },
+        ],
+      };
+      const result = owner
+        ? await dialog.showOpenDialog(owner, options)
+        : await dialog.showOpenDialog(options);
+
+      if (result.canceled || result.filePaths.length === 0) {
+        return { canceled: true };
+      }
+
+      const raw = await fs.readFile(result.filePaths[0], "utf8");
+      const plan = parseDailyPlanHistoryFile(raw);
+      return { canceled: false, plan };
+    } catch (error) {
+      return {
+        canceled: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : "Could not import daily plan history.",
+      };
+    }
+  });
 
   ipcMain.on("timer:finished", () => {
     if (Notification.isSupported()) {

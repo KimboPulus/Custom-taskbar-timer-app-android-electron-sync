@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer } from "electron";
 import type {
   AlarmSound,
   AppSettings,
+  DailyPlanSettings,
   ElectronAPI,
   PersistedTimerState,
   ShortcutAction,
@@ -45,6 +46,10 @@ const electronAPI: ElectronAPI = {
   chooseCustomMedia: () => ipcRenderer.invoke("media:choose-custom"),
   resolveAlarmUrl: (sound: AlarmSound) =>
     ipcRenderer.invoke("media:resolve-url", sound),
+  exportDailyPlanHistory: (plan: DailyPlanSettings) =>
+    ipcRenderer.invoke("daily-plan:export-history", plan),
+  importDailyPlanHistory: () =>
+    ipcRenderer.invoke("daily-plan:import-history"),
   notifyTimerFinished: () => ipcRenderer.send("timer:finished"),
   onRemoteSettingsApplied: (callback) => {
     const listener = (

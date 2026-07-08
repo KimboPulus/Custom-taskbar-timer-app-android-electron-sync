@@ -499,6 +499,11 @@
   border-bottom: 1px solid var(--line);
 }
 
+.click-volume-settings {
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--line);
+}
+
 .alarm-file-row,
 .alarm-preview-row,
 .volume-heading {

@@ -240,9 +240,9 @@
 
 .daily-plan-pro-quote p {
   margin: 5px 0 0;
-  font-size: 11px;
-  font-weight: 650;
-  line-height: 1.5;
+  font-size: 15px;
+  font-weight: 750;
+  line-height: 1.45;
 }
 
 .daily-plan-history__header {
@@ -270,6 +270,8 @@
 
 .daily-plan-year-controls {
   display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 6px;
 }
 
@@ -287,6 +289,13 @@
 .daily-plan-year-controls button:disabled {
   cursor: default;
   opacity: 0.42;
+}
+
+.daily-plan-history-message {
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+  overflow-wrap: anywhere;
 }
 
 .daily-plan-legend {

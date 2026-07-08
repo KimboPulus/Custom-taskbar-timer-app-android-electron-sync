@@ -11,6 +11,7 @@ import {
 } from "../dailyPlan/dailyPlan";
 import { getRandomProQuote } from "../dailyPlan/proQuotes";
 import type { DailyPlanSettings } from "../desktop/desktopTypes";
+import { electronApi } from "../desktop/electronApi";
 import { FlameIcon } from "./icons";
 
 type DailyPlanPanelProps = {
@@ -71,6 +72,7 @@ export function DailyPlanPanel({
   const [year, setYear] = useState(currentYear);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [historyMessage, setHistoryMessage] = useState("");
   const [streakPopup, setStreakPopup] = useState<number | null>(null);
   const [proQuote] = useState(getRandomProQuote);
 
@@ -163,6 +165,41 @@ export function DailyPlanPanel({
     }
 
     await onSave(setPastDailyPlanDateStatus(plan, dateKey, "neutral"));
+  };
+
+  const exportHistory = async () => {
+    setHistoryMessage("");
+    const result = await electronApi.exportDailyPlanHistory(plan);
+    if (result.canceled) {
+      return;
+    }
+    setHistoryMessage(
+      result.error
+        ? `Export failed: ${result.error}`
+        : `Exported history to ${result.filePath}.`,
+    );
+  };
+
+  const importHistory = async () => {
+    setHistoryMessage("");
+    const result = await electronApi.importDailyPlanHistory();
+    if (result.canceled) {
+      return;
+    }
+    if (result.error || !result.plan) {
+      setHistoryMessage(
+        `Import failed: ${result.error ?? "No daily plan found in file."}`,
+      );
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await onSave(result.plan);
+      setHistoryMessage("Imported daily plan history.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -309,6 +346,20 @@ export function DailyPlanPanel({
             <div className="daily-plan-year-controls">
               <button
                 type="button"
+                onClick={() => void exportHistory()}
+                aria-label="Export daily plan history"
+              >
+                Export
+              </button>
+              <button
+                type="button"
+                onClick={() => void importHistory()}
+                aria-label="Import daily plan history"
+              >
+                Import
+              </button>
+              <button
+                type="button"
                 onClick={() => setYear((current) => current - 1)}
                 aria-label="Previous year"
               >
@@ -326,6 +377,10 @@ export function DailyPlanPanel({
               </button>
             </div>
           </div>
+
+          {historyMessage && (
+            <p className="daily-plan-history-message">{historyMessage}</p>
+          )}
 
           <div className="daily-plan-legend" aria-label="Calendar legend">
             <span className="daily-plan-legend__success">Successful</span>

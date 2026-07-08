@@ -28,12 +28,7 @@ const fallbackSettings: AppSettings = {
     startedAt: null,
     pausedRemainingMs: null,
   },
-  focusPresets: [
-    5 * 60 * 1000,
-    25 * 60 * 1000,
-    50 * 60 * 1000,
-    2 * 60 * 60 * 1000,
-  ],
+  focusPresets: [],
   windowMode: "full",
   taskbarModeEnabled: true,
   launchAtStartup: false,
@@ -42,6 +37,7 @@ const fallbackSettings: AppSettings = {
   soundEnabled: true,
   pauseSoundEnabled: true,
   resumeSoundEnabled: true,
+  clickSoundVolume: 0.18,
   alarmSound: {
     kind: "built-in",
     id: "gentle-chime",
@@ -156,16 +152,12 @@ export default function App() {
       return () => window.clearTimeout(timeout);
     }
 
-    let secondFrame = 0;
     const firstFrame = requestAnimationFrame(() => {
-      secondFrame = requestAnimationFrame(() => {
-        electronApi.notifyWindowModeRendered(windowMode, modeTransitionId);
-      });
+      electronApi.notifyWindowModeRendered(windowMode, modeTransitionId);
     });
 
     return () => {
       cancelAnimationFrame(firstFrame);
-      cancelAnimationFrame(secondFrame);
     };
   }, [modeTransitionId, settingsReady, windowMode]);
 
@@ -194,15 +186,20 @@ export default function App() {
       transition.nextStatus === "paused" &&
       settings.pauseSoundEnabled
     ) {
-      playTimerClick("pause");
+      playTimerClick("pause", settings.clickSoundVolume);
     } else if (
       transition.previousStatus === "paused" &&
       transition.nextStatus === "running" &&
       settings.resumeSoundEnabled
     ) {
-      playTimerClick("resume");
+      playTimerClick("resume", settings.clickSoundVolume);
     }
-  }, [settings.pauseSoundEnabled, settings.resumeSoundEnabled, timer.toggle]);
+  }, [
+    settings.clickSoundVolume,
+    settings.pauseSoundEnabled,
+    settings.resumeSoundEnabled,
+    timer.toggle,
+  ]);
 
   const cycleWindowMode = useCallback(async () => {
     const appliedMode = await electronApi.cycleWindowMode();
@@ -224,7 +221,7 @@ export default function App() {
 
   useEffect(() => {
     const handleShortcut = (action: ShortcutAction) => {
-      if (settingsOpen) {
+      if (settingsOpen || dailyPlanOpen) {
         return;
       }
       switch (action) {
@@ -248,12 +245,35 @@ export default function App() {
 
     return electronApi.onShortcutAction(handleShortcut);
   }, [
+    dailyPlanOpen,
     settingsOpen,
     toggleTimer,
     timer.reset,
     timer.changeTime,
     cycleWindowMode,
   ]);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape" || event.defaultPrevented) {
+        return;
+      }
+
+      if (settingsOpen) {
+        event.preventDefault();
+        setSettingsOpen(false);
+        return;
+      }
+
+      if (dailyPlanOpen) {
+        event.preventDefault();
+        setDailyPlanOpen(false);
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [dailyPlanOpen, settingsOpen]);
 
   const selectDuration = useCallback(
     (durationMs: number) => {

@@ -208,6 +208,26 @@ export function SettingsPanel({
           </label>
         </div>
 
+        <div className="setting-block click-volume-settings">
+          <div className="volume-heading">
+            <label htmlFor="click-sound-volume">Click sound volume</label>
+            <span>{Math.round(settings.clickSoundVolume * 100)}%</span>
+          </div>
+          <input
+            id="click-sound-volume"
+            className="volume-slider"
+            type="range"
+            min="0"
+            max="100"
+            value={Math.round(settings.clickSoundVolume * 100)}
+            onChange={(event) =>
+              void onSave({
+                clickSoundVolume: Number(event.target.value) / 100,
+              })
+            }
+          />
+        </div>
+
         <div className="setting-block alarm-settings">
           <label htmlFor="alarm-sound">Alarm sound</label>
           <select

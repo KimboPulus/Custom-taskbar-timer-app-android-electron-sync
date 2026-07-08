@@ -49,6 +49,7 @@ type SyncAppSettings = {
   pauseSoundEnabled?: boolean;
   resumeSoundEnabled?: boolean;
   alarmVolume: number;
+  clickSoundVolume?: number;
   modifiedAt: string;
   modifiedBy: string;
 };
@@ -294,6 +295,7 @@ export class SyncServer {
       patch.soundEnabled !== undefined ||
       patch.pauseSoundEnabled !== undefined ||
       patch.resumeSoundEnabled !== undefined ||
+      patch.clickSoundVolume !== undefined ||
       patch.alarmVolume !== undefined
     ) {
       this.meta.appSettingsModifiedAt = modifiedAt;
@@ -392,6 +394,7 @@ export class SyncServer {
         pauseSoundEnabled: settings.pauseSoundEnabled,
         resumeSoundEnabled: settings.resumeSoundEnabled,
         alarmVolume: settings.alarmVolume,
+        clickSoundVolume: settings.clickSoundVolume,
         modifiedAt: this.meta.appSettingsModifiedAt,
         modifiedBy: syncDeviceId,
       },
@@ -493,6 +496,9 @@ export class SyncServer {
       }
       if (typeof request.settings.resumeSoundEnabled === "boolean") {
         patch.resumeSoundEnabled = request.settings.resumeSoundEnabled;
+      }
+      if (typeof request.settings.clickSoundVolume === "number") {
+        patch.clickSoundVolume = request.settings.clickSoundVolume;
       }
       patch.alarmVolume = request.settings.alarmVolume;
       this.meta.appSettingsModifiedAt = request.settings.modifiedAt;
