@@ -169,8 +169,11 @@
   font-size: 9px;
 }
 
-.daily-plan-streak svg {
-  color: #aa6a3a;
+.daily-plan-streak__flame {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  object-fit: contain;
 }
 
 .daily-plan-streak strong {
@@ -185,8 +188,8 @@
   background: color-mix(in srgb, #f5a85f 15%, var(--surface));
 }
 
-.daily-plan-streak--active svg {
-  color: #e06f2c;
+.daily-plan-streak--active .daily-plan-streak__flame {
+  filter: drop-shadow(0 1px 3px rgba(224, 111, 44, 0.28));
 }
 
 .daily-plan-today__status {

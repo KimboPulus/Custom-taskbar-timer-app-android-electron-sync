@@ -12,7 +12,7 @@ import {
 import { getRandomProQuote } from "../dailyPlan/proQuotes";
 import type { DailyPlanSettings } from "../desktop/desktopTypes";
 import { electronApi } from "../desktop/electronApi";
-import { FlameIcon } from "./icons";
+import flameIconUrl from "../assets/flame.webp?url";
 
 type DailyPlanPanelProps = {
   plan: DailyPlanSettings;
@@ -292,7 +292,12 @@ export function DailyPlanPanel({
                 aria-label={`${currentStreak} day streak`}
                 title={`${currentStreak} day streak`}
               >
-                <FlameIcon />
+                <img
+                  className="daily-plan-streak__flame"
+                  src={flameIconUrl}
+                  alt=""
+                  aria-hidden="true"
+                />
                 <strong>{currentStreak}</strong>
                 <span>{currentStreak === 1 ? "day" : "days"}</span>
               </div>
