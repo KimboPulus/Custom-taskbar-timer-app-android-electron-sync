@@ -186,13 +186,13 @@ export default function App() {
       transition.nextStatus === "paused" &&
       settings.pauseSoundEnabled
     ) {
-      playTimerClick("pause", settings.clickSoundVolume);
+      void playTimerClick("pause", settings.clickSoundVolume);
     } else if (
       transition.previousStatus === "paused" &&
       transition.nextStatus === "running" &&
       settings.resumeSoundEnabled
     ) {
-      playTimerClick("resume", settings.clickSoundVolume);
+      void playTimerClick("resume", settings.clickSoundVolume);
     }
   }, [
     settings.clickSoundVolume,

@@ -6,6 +6,14 @@ let activeContext: AudioContext | null = null;
 let clickContext: AudioContext | null = null;
 let stopTimer: number | null = null;
 
+function getClickContext(): AudioContext {
+  if (!clickContext || clickContext.state === "closed") {
+    clickContext = new AudioContext();
+  }
+
+  return clickContext;
+}
+
 export function stopAlarm(): void {
   if (stopTimer !== null) {
     window.clearTimeout(stopTimer);
@@ -50,15 +58,33 @@ function playGentleChime(volume: number): void {
   stopTimer = window.setTimeout(stopAlarm, 3_000);
 }
 
-export function playTimerClick(
+async function ensureAudioContextIsRunning(context: AudioContext): Promise<boolean> {
+  if (context.state === "running") {
+    return true;
+  }
+
+  try {
+    await context.resume();
+    return true;
+  } catch (error) {
+    console.warn("Could not resume timer click audio context:", error);
+    return false;
+  }
+}
+
+export async function playTimerClick(
   kind: "pause" | "resume",
   volume = 0.18,
-): void {
-  const context = clickContext ?? new AudioContext();
-  clickContext = context;
-  if (context.state === "suspended") {
-    void context.resume();
+): Promise<boolean> {
+  let context = getClickContext();
+  if (!(await ensureAudioContextIsRunning(context))) {
+    clickContext = new AudioContext();
+    context = clickContext;
+    if (!(await ensureAudioContextIsRunning(context))) {
+      return false;
+    }
   }
+
   const start = context.currentTime;
   const gain = context.createGain();
   const oscillator = context.createOscillator();
@@ -82,6 +108,7 @@ export function playTimerClick(
   gain.connect(context.destination);
   oscillator.start(start);
   oscillator.stop(start + 0.11);
+  return true;
 }
 
 export async function playAlarm(
