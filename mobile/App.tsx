@@ -29,6 +29,7 @@ type TimerSyncState = {
 type DailyPlanDateStatus = {
   date: string;
   status: DailyPlanStatus;
+  remainingMs?: number | null;
   modifiedAt: string;
   modifiedBy: string;
 };
@@ -417,10 +418,12 @@ export default function App() {
 
     updateSnapshot(draft => {
       const modifiedAt = nowIso();
+      const existingDay = draft.dailyPlan.dates.find(day => day.date === date);
       draft.dailyPlan.dates = draft.dailyPlan.dates.filter(day => day.date !== date);
       draft.dailyPlan.dates.push({
         date,
         status,
+        remainingMs: existingDay?.remainingMs,
         modifiedAt,
         modifiedBy: deviceId,
       });

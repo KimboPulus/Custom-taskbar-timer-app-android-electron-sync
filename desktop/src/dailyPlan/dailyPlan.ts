@@ -181,6 +181,47 @@ export function setPastDailyPlanDateStatus(
   };
 }
 
+export function getDailyPlanRemainingTime(
+  plan: DailyPlanSettings,
+  dateKey: string,
+): number | null {
+  return (
+    plan.remainingTimes.find((item) => item.date === dateKey)?.remainingMs ??
+    null
+  );
+}
+
+export function setDailyPlanRemainingTime(
+  plan: DailyPlanSettings,
+  dateKey: string,
+  remainingMs: number,
+): DailyPlanSettings {
+  const remainingTimes = new Map(
+    plan.remainingTimes.map((item) => [item.date, item.remainingMs]),
+  );
+  remainingTimes.set(dateKey, Math.max(1, Math.round(remainingMs)));
+
+  return {
+    ...plan,
+    remainingTimes: [...remainingTimes.entries()]
+      .map(([date, savedRemainingMs]) => ({
+        date,
+        remainingMs: savedRemainingMs,
+      }))
+      .sort((left, right) => left.date.localeCompare(right.date)),
+  };
+}
+
+export function clearDailyPlanRemainingTime(
+  plan: DailyPlanSettings,
+  dateKey: string,
+): DailyPlanSettings {
+  return {
+    ...plan,
+    remainingTimes: plan.remainingTimes.filter((item) => item.date !== dateKey),
+  };
+}
+
 export function getNextPastDailyPlanStatus(
   plan: DailyPlanSettings,
   dateKey: string,

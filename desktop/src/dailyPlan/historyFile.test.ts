@@ -12,6 +12,7 @@ const plan: DailyPlanSettings = {
   completedDates: ["2026-06-10"],
   failedDates: ["2026-06-11"],
   neutralDates: ["2026-06-12"],
+  remainingTimes: [{ date: "2026-06-20", remainingMs: 9000000 }],
 };
 
 describe("daily plan history file", () => {
@@ -36,6 +37,45 @@ describe("daily plan history file", () => {
     expect(imported.startDate).toBe("2026-06-10");
   });
 
+  it("infers start date from saved time left when no status exists", () => {
+    const imported = parseDailyPlanHistoryFile(
+      JSON.stringify({
+        title: "Imported",
+        targetMinutes: 60,
+        completedDates: [],
+        failedDates: [],
+        neutralDates: [],
+        remainingTimes: [{ date: "2026-06-20", remainingMs: 9000000 }],
+      }),
+    );
+
+    expect(imported.startDate).toBe("2026-06-20");
+    expect(imported.remainingTimes).toEqual([
+      { date: "2026-06-20", remainingMs: 9000000 },
+    ]);
+  });
+
+  it("deduplicates saved time left by date", () => {
+    const imported = parseDailyPlanHistoryFile(
+      JSON.stringify({
+        title: "Imported",
+        targetMinutes: 60,
+        completedDates: [],
+        failedDates: [],
+        neutralDates: [],
+        remainingTimes: [
+          { date: "2026-06-20", remainingMs: 9000000 },
+          { date: "2026-06-20", remainingMs: 3600000 },
+          { date: "bad", remainingMs: 1 },
+        ],
+      }),
+    );
+
+    expect(imported.remainingTimes).toEqual([
+      { date: "2026-06-20", remainingMs: 3600000 },
+    ]);
+  });
+
   it("deduplicates overlapping day status lists", () => {
     const imported = parseDailyPlanHistoryFile(
       JSON.stringify({
@@ -51,5 +91,6 @@ describe("daily plan history file", () => {
     expect(imported.completedDates).toEqual(["2026-06-10"]);
     expect(imported.failedDates).toEqual(["2026-06-11"]);
     expect(imported.neutralDates).toEqual(["2026-06-12"]);
+    expect(imported.remainingTimes).toEqual([]);
   });
 });

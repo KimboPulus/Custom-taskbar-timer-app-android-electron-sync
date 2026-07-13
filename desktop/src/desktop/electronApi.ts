@@ -41,6 +41,7 @@ const browserSettings: AppSettings = {
     completedDates: [],
     failedDates: [],
     neutralDates: [],
+    remainingTimes: [],
   },
 };
 

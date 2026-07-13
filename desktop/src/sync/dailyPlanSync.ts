@@ -9,6 +9,7 @@ export type SyncDailyPlanStatus =
 export type SyncDailyPlanDateStatus = {
   date: string;
   status: SyncDailyPlanStatus;
+  remainingMs?: number | null;
   modifiedAt: string;
   modifiedBy: string;
 };
@@ -46,7 +47,14 @@ export function mergeDailyPlanDateRecords(
   for (const candidate of remote) {
     const current = records.get(candidate.date);
     if (!current || isSyncRevisionNewer(candidate, current)) {
-      records.set(candidate.date, candidate);
+      records.set(candidate.date, {
+        ...candidate,
+        remainingMs:
+          Object.prototype.hasOwnProperty.call(candidate, "remainingMs") ||
+          !current
+            ? candidate.remainingMs
+            : current.remainingMs,
+      });
       changed = true;
     }
   }
@@ -66,6 +74,7 @@ export function applyDateRecordsToDailyPlan(
   const completedDates: string[] = [];
   const failedDates: string[] = [];
   const neutralDates: string[] = [];
+  const remainingTimes: DailyPlanSettings["remainingTimes"] = [];
 
   for (const record of records) {
     if (record.status === "Completed") {
@@ -75,6 +84,17 @@ export function applyDateRecordsToDailyPlan(
     } else if (record.status === "Neutral") {
       neutralDates.push(record.date);
     }
+
+    if (
+      typeof record.remainingMs === "number" &&
+      Number.isFinite(record.remainingMs) &&
+      record.remainingMs > 0
+    ) {
+      remainingTimes.push({
+        date: record.date,
+        remainingMs: Math.round(record.remainingMs),
+      });
+    }
   }
 
   return {
@@ -82,6 +102,9 @@ export function applyDateRecordsToDailyPlan(
     completedDates: completedDates.sort(),
     failedDates: failedDates.sort(),
     neutralDates: neutralDates.sort(),
+    remainingTimes: remainingTimes.sort((left, right) =>
+      left.date.localeCompare(right.date),
+    ),
   };
 }
 
@@ -107,6 +130,14 @@ export function getExplicitDailyPlanDates(plan: DailyPlanSettings): string[] {
       ...plan.completedDates,
       ...plan.failedDates,
       ...plan.neutralDates,
+      ...plan.remainingTimes.map((item) => item.date),
     ]),
   ).sort();
+}
+
+export function getExplicitDailyPlanRemainingMs(
+  plan: DailyPlanSettings,
+  date: string,
+): number | null {
+  return plan.remainingTimes.find((item) => item.date === date)?.remainingMs ?? null;
 }

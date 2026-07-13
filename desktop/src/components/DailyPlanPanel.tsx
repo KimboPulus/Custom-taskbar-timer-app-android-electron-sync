@@ -1,18 +1,24 @@
 import { useEffect, useMemo, useState } from "react";
 import {
+  clearDailyPlanRemainingTime,
   formatDailyTarget,
   getCurrentDailyPlanStreak,
   getDailyPlanDayStatus,
+  getDailyPlanRemainingTime,
   getDailyPlanYearStats,
   getLocalDateKey,
   getNextPastDailyPlanStatus,
+  setDailyPlanRemainingTime,
   setPastDailyPlanDateStatus,
   togglePastDailyPlanDate,
 } from "../dailyPlan/dailyPlan";
 import { getRandomProQuote } from "../dailyPlan/proQuotes";
 import type { DailyPlanSettings } from "../desktop/desktopTypes";
 import { electronApi } from "../desktop/electronApi";
+import { formatTime } from "../timer/formatTime";
+import { parseTime } from "../timer/parseTime";
 import flameIconUrl from "../assets/flame.webp?url";
+import { FixedTimeInput } from "./FixedTimeInput";
 
 type DailyPlanPanelProps = {
   plan: DailyPlanSettings;
@@ -56,6 +62,20 @@ function getCalendarDays(year: number, month: number) {
   ];
 }
 
+function isDateKey(value: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return false;
+  }
+
+  const [year, month, day] = value.split("-").map(Number);
+  const date = new Date(year, month - 1, day);
+  return (
+    date.getFullYear() === year &&
+    date.getMonth() === month - 1 &&
+    date.getDate() === day
+  );
+}
+
 export function DailyPlanPanel({
   plan,
   proModeEnabled,
@@ -75,11 +95,24 @@ export function DailyPlanPanel({
   const [historyMessage, setHistoryMessage] = useState("");
   const [streakPopup, setStreakPopup] = useState<number | null>(null);
   const [proQuote] = useState(getRandomProQuote);
+  const [timeLeftDate, setTimeLeftDate] = useState(todayKey);
+  const [timeLeftValue, setTimeLeftValue] = useState(
+    formatTime(plan.targetMinutes * 60 * 1000),
+  );
+  const [timeLeftInvalid, setTimeLeftInvalid] = useState(false);
 
   useEffect(() => {
     setTitle(plan.title);
     setTargetHours(String(plan.targetMinutes / 60));
   }, [plan.targetMinutes, plan.title]);
+
+  useEffect(() => {
+    const savedRemainingMs = getDailyPlanRemainingTime(plan, timeLeftDate);
+    setTimeLeftValue(
+      formatTime(savedRemainingMs ?? plan.targetMinutes * 60 * 1000),
+    );
+    setTimeLeftInvalid(false);
+  }, [plan, timeLeftDate]);
 
   const configured = plan.startDate !== null;
   const todayStatus = getDailyPlanDayStatus(todayKey, plan, todayKey);
@@ -165,6 +198,58 @@ export function DailyPlanPanel({
     }
 
     await onSave(setPastDailyPlanDateStatus(plan, dateKey, "neutral"));
+  };
+
+  const selectTimeLeftDate = (dateKey: string) => {
+    setTimeLeftDate(dateKey);
+    const savedRemainingMs = getDailyPlanRemainingTime(plan, dateKey);
+    setTimeLeftValue(
+      formatTime(savedRemainingMs ?? plan.targetMinutes * 60 * 1000),
+    );
+    setTimeLeftInvalid(false);
+  };
+
+  const saveTimeLeft = async () => {
+    const dateKey = timeLeftDate.trim();
+    const remainingMs = parseTime(timeLeftValue);
+
+    if (!isDateKey(dateKey)) {
+      setTimeLeftInvalid(true);
+      setHistoryMessage("Pick a valid day for the saved time left.");
+      return;
+    }
+    if (remainingMs === null) {
+      setTimeLeftInvalid(true);
+      setHistoryMessage("Enter time left as HH:MM:SS.");
+      return;
+    }
+
+    setSaving(true);
+    setTimeLeftInvalid(false);
+    try {
+      await onSave(setDailyPlanRemainingTime(plan, dateKey, remainingMs));
+      setHistoryMessage(`Saved ${formatTime(remainingMs)} left for ${dateKey}.`);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const clearTimeLeft = async () => {
+    const dateKey = timeLeftDate.trim();
+    if (!isDateKey(dateKey)) {
+      setTimeLeftInvalid(true);
+      setHistoryMessage("Pick a valid day before clearing saved time.");
+      return;
+    }
+
+    setSaving(true);
+    setTimeLeftInvalid(false);
+    try {
+      await onSave(clearDailyPlanRemainingTime(plan, dateKey));
+      setHistoryMessage(`Cleared saved time left for ${dateKey}.`);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const exportHistory = async () => {
@@ -387,6 +472,63 @@ export function DailyPlanPanel({
             <p className="daily-plan-history-message">{historyMessage}</p>
           )}
 
+          <div className="daily-plan-time-left">
+            <div>
+              <span className="daily-plan-kicker">Time left note</span>
+              <h4>Save unfinished time for a day</h4>
+              <p>
+                Example: save 02:30:00 for 2026-06-20 when that day still has
+                2.5h left.
+              </p>
+            </div>
+            <label>
+              Day
+              <input
+                type="date"
+                value={timeLeftDate}
+                onChange={(event) => {
+                  setTimeLeftDate(event.target.value);
+                  setTimeLeftInvalid(false);
+                }}
+              />
+            </label>
+            <label>
+              Time left (HH:MM:SS)
+              <FixedTimeInput
+                value={timeLeftValue}
+                ariaLabel="Daily plan time left"
+                invalid={timeLeftInvalid}
+                onChange={(value) => {
+                  setTimeLeftValue(value);
+                  setTimeLeftInvalid(false);
+                }}
+                onCommit={() => void saveTimeLeft()}
+              />
+            </label>
+            <div className="daily-plan-time-left__actions">
+              <button
+                type="button"
+                disabled={saving}
+                onClick={() => void saveTimeLeft()}
+              >
+                Save time left
+              </button>
+              <button
+                type="button"
+                disabled={saving}
+                onClick={() => void clearTimeLeft()}
+              >
+                Clear
+              </button>
+            </div>
+            <p className="daily-plan-time-left__saved">
+              Saved for {timeLeftDate}:{" "}
+              {getDailyPlanRemainingTime(plan, timeLeftDate) === null
+                ? "none"
+                : formatTime(getDailyPlanRemainingTime(plan, timeLeftDate)!)}
+            </p>
+          </div>
+
           <div className="daily-plan-legend" aria-label="Calendar legend">
             <span className="daily-plan-legend__success">Successful</span>
             <span className="daily-plan-legend__failed">Failed</span>
@@ -425,6 +567,14 @@ export function DailyPlanPanel({
                       todayKey,
                     );
                     const isToday = dateKey === todayKey;
+                    const remainingMs = getDailyPlanRemainingTime(
+                      plan,
+                      dateKey,
+                    );
+                    const timeLeftLabel =
+                      remainingMs === null
+                        ? ""
+                        : ` Time left saved: ${formatTime(remainingMs)}.`;
                     const editable =
                       configured &&
                       dateKey < todayKey;
@@ -433,11 +583,13 @@ export function DailyPlanPanel({
                       dateKey,
                     );
                     const label = editable
-                      ? `${fullDateFormatter.format(date)}: ${status}. Left-click to mark ${nextStatus}; right-click to mark neutral.`
-                      : `${fullDateFormatter.format(date)}: ${status}`;
+                      ? `${fullDateFormatter.format(date)}: ${status}.${timeLeftLabel} Left-click to mark ${nextStatus}; right-click to mark neutral.`
+                      : `${fullDateFormatter.format(date)}: ${status}.${timeLeftLabel}`;
                     const className = `calendar-day calendar-day--${status} ${
                       isToday ? "calendar-day--today" : ""
-                    } ${editable ? "calendar-day--editable" : ""}`;
+                    } ${editable ? "calendar-day--editable" : ""} ${
+                      remainingMs !== null ? "calendar-day--has-time" : ""
+                    }`;
 
                     return editable ? (
                       <button
@@ -446,9 +598,13 @@ export function DailyPlanPanel({
                         aria-label={label}
                         title={label}
                         disabled={saving}
-                        onClick={() => void togglePastDate(dateKey)}
+                        onClick={() => {
+                          selectTimeLeftDate(dateKey);
+                          void togglePastDate(dateKey);
+                        }}
                         onContextMenu={(event) => {
                           event.preventDefault();
+                          selectTimeLeftDate(dateKey);
                           void neutralizePastDate(dateKey);
                         }}
                         key={dateKey}
@@ -460,6 +616,7 @@ export function DailyPlanPanel({
                         className={className}
                         aria-label={label}
                         title={label}
+                        onClick={() => selectTimeLeftDate(dateKey)}
                         key={dateKey}
                       >
                         {day}

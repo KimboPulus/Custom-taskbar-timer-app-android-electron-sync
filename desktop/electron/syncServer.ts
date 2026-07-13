@@ -10,6 +10,7 @@ import type {
 import {
   applyDateRecordsToDailyPlan,
   getExplicitDailyPlanDates,
+  getExplicitDailyPlanRemainingMs,
   getExplicitDailyPlanStatus,
   isSyncRevisionNewer,
   mergeDailyPlanDateRecords,
@@ -266,10 +267,19 @@ export class SyncServer {
       for (const date of dates) {
         const previousStatus = getExplicitDailyPlanStatus(previousPlan, date);
         const nextStatus = getExplicitDailyPlanStatus(nextPlan, date);
-        if (previousStatus !== nextStatus) {
+        const previousRemainingMs = getExplicitDailyPlanRemainingMs(
+          previousPlan,
+          date,
+        );
+        const nextRemainingMs = getExplicitDailyPlanRemainingMs(nextPlan, date);
+        if (
+          previousStatus !== nextStatus ||
+          previousRemainingMs !== nextRemainingMs
+        ) {
           this.meta.dailyPlanDates[date] = {
             date,
             status: nextStatus,
+            remainingMs: nextRemainingMs,
             modifiedAt,
             modifiedBy: syncDeviceId,
           };
@@ -541,8 +551,22 @@ export class SyncServer {
         this.meta.dailyPlanDates[date] = {
           date,
           status: getExplicitDailyPlanStatus(plan, date),
+          remainingMs: getExplicitDailyPlanRemainingMs(plan, date),
           modifiedAt: this.meta.dailyPlanModifiedAt,
           modifiedBy: this.meta.dailyPlanModifiedBy,
+        };
+        changed = true;
+        continue;
+      }
+
+      const remainingMs = getExplicitDailyPlanRemainingMs(plan, date);
+      if (
+        remainingMs !== null &&
+        this.meta.dailyPlanDates[date].remainingMs !== remainingMs
+      ) {
+        this.meta.dailyPlanDates[date] = {
+          ...this.meta.dailyPlanDates[date],
+          remainingMs,
         };
         changed = true;
       }

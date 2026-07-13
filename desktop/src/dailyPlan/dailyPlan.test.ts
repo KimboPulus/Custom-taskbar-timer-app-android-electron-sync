@@ -1,12 +1,15 @@
 import { describe, expect, it } from "vitest";
 import type { DailyPlanSettings } from "../desktop/desktopTypes";
 import {
+  clearDailyPlanRemainingTime,
   formatDailyTarget,
   getCurrentDailyPlanStreak,
   getDailyPlanCatchUpDays,
   getDailyPlanDayStatus,
+  getDailyPlanRemainingTime,
   getDailyPlanYearStats,
   getLocalDateKey,
+  setDailyPlanRemainingTime,
   setPastDailyPlanDateStatus,
   togglePastDailyPlanDate,
 } from "./dailyPlan";
@@ -18,6 +21,7 @@ const plan: DailyPlanSettings = {
   completedDates: ["2026-06-10", "2026-06-12", "2026-06-14"],
   failedDates: [],
   neutralDates: [],
+  remainingTimes: [],
 };
 
 describe("daily plan", () => {
@@ -163,6 +167,22 @@ describe("daily plan", () => {
     ).toBe("neutral");
     expect(neutralPlan.completedDates).not.toContain("2026-06-11");
     expect(neutralPlan.failedDates).not.toContain("2026-06-11");
+  });
+
+  it("saves and clears exact time left per day", () => {
+    const saved = setDailyPlanRemainingTime(plan, "2026-06-20", 2.5 * 60 * 60 * 1000);
+
+    expect(getDailyPlanRemainingTime(saved, "2026-06-20")).toBe(9000000);
+    expect(saved.remainingTimes).toEqual([
+      { date: "2026-06-20", remainingMs: 9000000 },
+    ]);
+
+    const replaced = setDailyPlanRemainingTime(saved, "2026-06-20", 60 * 60 * 1000);
+    expect(getDailyPlanRemainingTime(replaced, "2026-06-20")).toBe(3600000);
+    expect(replaced.remainingTimes).toHaveLength(1);
+
+    const cleared = clearDailyPlanRemainingTime(replaced, "2026-06-20");
+    expect(getDailyPlanRemainingTime(cleared, "2026-06-20")).toBeNull();
   });
 
   it("counts a streak through today when today is complete", () => {

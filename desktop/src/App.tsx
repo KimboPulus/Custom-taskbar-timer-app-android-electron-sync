@@ -59,6 +59,7 @@ const fallbackSettings: AppSettings = {
     completedDates: [],
     failedDates: [],
     neutralDates: [],
+    remainingTimes: [],
   },
 };
 

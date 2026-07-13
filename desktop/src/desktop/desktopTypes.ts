@@ -51,6 +51,11 @@ export type PersistedTimerState = {
   pausedRemainingMs: number | null;
 };
 
+export type DailyPlanRemainingTime = {
+  date: string;
+  remainingMs: number;
+};
+
 export type DailyPlanSettings = {
   title: string;
   targetMinutes: number;
@@ -58,6 +63,7 @@ export type DailyPlanSettings = {
   completedDates: string[];
   failedDates: string[];
   neutralDates: string[];
+  remainingTimes: DailyPlanRemainingTime[];
 };
 
 export type DailyPlanHistoryExportResult = {

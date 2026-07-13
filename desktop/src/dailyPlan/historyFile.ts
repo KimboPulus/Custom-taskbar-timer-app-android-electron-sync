@@ -44,14 +44,41 @@ function uniqueSortedDates(values: unknown, blocked = new Set<string>()): string
   ).sort();
 }
 
+function normalizeRemainingTimes(
+  values: unknown,
+): DailyPlanSettings["remainingTimes"] {
+  if (!Array.isArray(values)) {
+    return [];
+  }
+
+  const byDate = new Map<string, number>();
+  for (const item of values) {
+    if (!isRecord(item) || !isDateKey(item.date)) {
+      continue;
+    }
+
+    const remainingMs = Number(item.remainingMs);
+    if (!Number.isFinite(remainingMs) || remainingMs <= 0) {
+      continue;
+    }
+
+    byDate.set(item.date, Math.round(remainingMs));
+  }
+
+  return [...byDate.entries()]
+    .map(([date, remainingMs]) => ({ date, remainingMs }))
+    .sort((left, right) => left.date.localeCompare(right.date));
+}
+
 function getEarliestDate(plan: Pick<
   DailyPlanSettings,
-  "completedDates" | "failedDates" | "neutralDates"
+  "completedDates" | "failedDates" | "neutralDates" | "remainingTimes"
 >): string | null {
   return [
     ...plan.completedDates,
     ...plan.failedDates,
     ...plan.neutralDates,
+    ...plan.remainingTimes.map((item) => item.date),
   ].sort()[0] ?? null;
 }
 
@@ -65,9 +92,15 @@ export function normalizeDailyPlanHistory(value: unknown): DailyPlanSettings {
   const failedDates = uniqueSortedDates(value.failedDates, completedSet);
   const usedSet = new Set([...completedDates, ...failedDates]);
   const neutralDates = uniqueSortedDates(value.neutralDates, usedSet);
+  const remainingTimes = normalizeRemainingTimes(value.remainingTimes);
   const startDate = isDateKey(value.startDate)
     ? value.startDate
-    : getEarliestDate({ completedDates, failedDates, neutralDates });
+    : getEarliestDate({
+        completedDates,
+        failedDates,
+        neutralDates,
+        remainingTimes,
+      });
 
   return {
     title:
@@ -82,6 +115,7 @@ export function normalizeDailyPlanHistory(value: unknown): DailyPlanSettings {
     completedDates,
     failedDates,
     neutralDates,
+    remainingTimes,
   };
 }
 

@@ -11,7 +11,14 @@ const record = (
   status: SyncDailyPlanDateStatus["status"],
   modifiedAt: string,
   modifiedBy: string,
-): SyncDailyPlanDateStatus => ({ date, status, modifiedAt, modifiedBy });
+  remainingMs?: number | null,
+): SyncDailyPlanDateStatus => {
+  const item: SyncDailyPlanDateStatus = { date, status, modifiedAt, modifiedBy };
+  if (remainingMs !== undefined) {
+    item.remainingMs = remainingMs;
+  }
+  return item;
+};
 
 const emptyPlan: DailyPlanSettings = {
   title: "Reading",
@@ -20,6 +27,7 @@ const emptyPlan: DailyPlanSettings = {
   completedDates: [],
   failedDates: [],
   neutralDates: [],
+  remainingTimes: [],
 };
 
 describe("daily plan per-date sync", () => {
@@ -79,5 +87,60 @@ describe("daily plan per-date sync", () => {
     expect(plan.completedDates).toEqual(["2026-06-01"]);
     expect(plan.failedDates).toEqual([]);
     expect(plan.neutralDates).toEqual([]);
+  });
+
+  it("keeps saved time left when remote status edit has no time field", () => {
+    const merged = mergeDailyPlanDateRecords(
+      [
+        record(
+          "2026-06-20",
+          "Completed",
+          "2026-06-20T10:00:00.000Z",
+          "desktop",
+          9000000,
+        ),
+      ],
+      [
+        record(
+          "2026-06-20",
+          "Failed",
+          "2026-06-21T10:00:00.000Z",
+          "android",
+        ),
+      ],
+    );
+    const plan = applyDateRecordsToDailyPlan(emptyPlan, merged.records);
+
+    expect(plan.failedDates).toEqual(["2026-06-20"]);
+    expect(plan.remainingTimes).toEqual([
+      { date: "2026-06-20", remainingMs: 9000000 },
+    ]);
+  });
+
+  it("applies cleared time-left tombstones independently", () => {
+    const merged = mergeDailyPlanDateRecords(
+      [
+        record(
+          "2026-06-20",
+          "Completed",
+          "2026-06-20T10:00:00.000Z",
+          "desktop",
+          9000000,
+        ),
+      ],
+      [
+        record(
+          "2026-06-20",
+          "Completed",
+          "2026-06-21T10:00:00.000Z",
+          "android",
+          null,
+        ),
+      ],
+    );
+    const plan = applyDateRecordsToDailyPlan(emptyPlan, merged.records);
+
+    expect(plan.completedDates).toEqual(["2026-06-20"]);
+    expect(plan.remainingTimes).toEqual([]);
   });
 });

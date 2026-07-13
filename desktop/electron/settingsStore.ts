@@ -57,6 +57,7 @@ export const defaultSettings: AppSettings = {
     completedDates: [],
     failedDates: [],
     neutralDates: [],
+    remainingTimes: [],
   },
 };
 
@@ -129,6 +130,32 @@ function isDateKey(value: unknown): value is string {
   );
 }
 
+function normalizeRemainingTimes(
+  values: Partial<DailyPlanSettings>["remainingTimes"],
+): DailyPlanSettings["remainingTimes"] {
+  if (!Array.isArray(values)) {
+    return [];
+  }
+
+  const byDate = new Map<string, number>();
+  for (const item of values) {
+    if (!item || typeof item !== "object" || !isDateKey(item.date)) {
+      continue;
+    }
+
+    const remainingMs = Number(item.remainingMs);
+    if (!Number.isFinite(remainingMs) || remainingMs <= 0) {
+      continue;
+    }
+
+    byDate.set(item.date, Math.round(remainingMs));
+  }
+
+  return [...byDate.entries()]
+    .map(([date, remainingMs]) => ({ date, remainingMs }))
+    .sort((left, right) => left.date.localeCompare(right.date));
+}
+
 function normalizeDailyPlan(value: unknown): DailyPlanSettings {
   if (!value || typeof value !== "object") {
     return structuredClone(defaultSettings.dailyPlan);
@@ -184,6 +211,7 @@ function normalizeDailyPlan(value: unknown): DailyPlanSettings {
     completedDates,
     failedDates,
     neutralDates,
+    remainingTimes: normalizeRemainingTimes(plan.remainingTimes),
   };
 }
 
