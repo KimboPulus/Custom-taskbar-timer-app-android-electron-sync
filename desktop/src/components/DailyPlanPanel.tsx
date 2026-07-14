@@ -123,6 +123,10 @@ export function DailyPlanPanel({
   );
 
   const savePlan = async () => {
+    if (saving) {
+      return;
+    }
+
     const parsedHours = Number(targetHours);
     const cleanTitle = title.trim();
 
@@ -147,7 +151,7 @@ export function DailyPlanPanel({
   };
 
   const toggleToday = async () => {
-    if (!configured) {
+    if (!configured || saving) {
       return;
     }
 
@@ -184,6 +188,7 @@ export function DailyPlanPanel({
   const togglePastDate = async (dateKey: string) => {
     if (
       !configured ||
+      saving ||
       dateKey >= todayKey
     ) {
       return;
@@ -193,7 +198,7 @@ export function DailyPlanPanel({
   };
 
   const neutralizePastDate = async (dateKey: string) => {
-    if (!configured || dateKey >= todayKey) {
+    if (!configured || saving || dateKey >= todayKey) {
       return;
     }
 
@@ -210,6 +215,10 @@ export function DailyPlanPanel({
   };
 
   const saveTimeLeft = async () => {
+    if (saving) {
+      return;
+    }
+
     const dateKey = timeLeftDate.trim();
     const remainingMs = parseTime(timeLeftValue);
 
@@ -235,6 +244,10 @@ export function DailyPlanPanel({
   };
 
   const clearTimeLeft = async () => {
+    if (saving) {
+      return;
+    }
+
     const dateKey = timeLeftDate.trim();
     if (!isDateKey(dateKey)) {
       setTimeLeftInvalid(true);
@@ -253,6 +266,10 @@ export function DailyPlanPanel({
   };
 
   const exportHistory = async () => {
+    if (saving) {
+      return;
+    }
+
     setHistoryMessage("");
     const result = await electronApi.exportDailyPlanHistory(plan);
     if (result.canceled) {
@@ -266,6 +283,10 @@ export function DailyPlanPanel({
   };
 
   const importHistory = async () => {
+    if (saving) {
+      return;
+    }
+
     setHistoryMessage("");
     const result = await electronApi.importDailyPlanHistory();
     if (result.canceled) {
@@ -354,7 +375,6 @@ export function DailyPlanPanel({
             <button
               className="daily-plan-set"
               type="button"
-              disabled={saving}
               onClick={() => void savePlan()}
             >
               {configured ? "Update plan" : "Set plan"}
@@ -405,7 +425,7 @@ export function DailyPlanPanel({
             </div>
             <button
               type="button"
-              disabled={!configured || saving}
+              disabled={!configured}
               onClick={() => void toggleToday()}
             >
               {todayStatus === "completed" ? "Undo done" : "Done for today"}
@@ -508,14 +528,12 @@ export function DailyPlanPanel({
             <div className="daily-plan-time-left__actions">
               <button
                 type="button"
-                disabled={saving}
                 onClick={() => void saveTimeLeft()}
               >
                 Save time left
               </button>
               <button
                 type="button"
-                disabled={saving}
                 onClick={() => void clearTimeLeft()}
               >
                 Clear
@@ -597,7 +615,6 @@ export function DailyPlanPanel({
                         className={className}
                         aria-label={label}
                         title={label}
-                        disabled={saving}
                         onClick={() => {
                           selectTimeLeftDate(dateKey);
                           void togglePastDate(dateKey);
