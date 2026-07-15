@@ -1,10 +1,12 @@
 import { electronApi } from "./electronApi";
 import type { AlarmSound } from "./desktopTypes";
+import { getTimerClickStartDelaySeconds } from "./timerClickAudioPolicy";
 
 let activeMedia: HTMLMediaElement | null = null;
 let activeContext: AudioContext | null = null;
 let clickContext: AudioContext | null = null;
 let stopTimer: number | null = null;
+let lastTimerClickStartedAt: number | null = null;
 
 function getClickContext(): AudioContext {
   if (!clickContext || clickContext.state === "closed") {
@@ -65,11 +67,31 @@ async function ensureAudioContextIsRunning(context: AudioContext): Promise<boole
 
   try {
     await context.resume();
-    return true;
+    const state = context.state as string;
+    return state === "running";
   } catch (error) {
     console.warn("Could not resume timer click audio context:", error);
     return false;
   }
+}
+
+function getAudioClockNow(): number {
+  return typeof performance === "undefined" ? Date.now() : performance.now();
+}
+
+function warmTimerClickAudioOutput(context: AudioContext, start: number): void {
+  const gain = context.createGain();
+  const oscillator = context.createOscillator();
+
+  oscillator.type = "sine";
+  oscillator.frequency.setValueAtTime(48, start);
+  gain.gain.setValueAtTime(0.00001, start);
+  gain.gain.setValueAtTime(0.00001, start + 0.025);
+
+  oscillator.connect(gain);
+  gain.connect(context.destination);
+  oscillator.start(start);
+  oscillator.stop(start + 0.025);
 }
 
 export async function playTimerClick(
@@ -77,18 +99,30 @@ export async function playTimerClick(
   volume = 0.18,
 ): Promise<boolean> {
   let context = getClickContext();
+  let contextWasRunning = context.state === "running";
   if (!(await ensureAudioContextIsRunning(context))) {
     clickContext = new AudioContext();
     context = clickContext;
+    contextWasRunning = false;
     if (!(await ensureAudioContextIsRunning(context))) {
       return false;
     }
   }
 
-  const start = context.currentTime;
+  const now = getAudioClockNow();
+  const startDelay = getTimerClickStartDelaySeconds(
+    lastTimerClickStartedAt,
+    now,
+    contextWasRunning,
+  );
+  const start = context.currentTime + startDelay;
   const gain = context.createGain();
   const oscillator = context.createOscillator();
   const normalizedVolume = Math.min(1, Math.max(0, volume));
+
+  if (startDelay > 0) {
+    warmTimerClickAudioOutput(context, context.currentTime);
+  }
 
   oscillator.type = "triangle";
   oscillator.frequency.setValueAtTime(kind === "pause" ? 410 : 520, start);
@@ -108,6 +142,7 @@ export async function playTimerClick(
   gain.connect(context.destination);
   oscillator.start(start);
   oscillator.stop(start + 0.11);
+  lastTimerClickStartedAt = now;
   return true;
 }
 
