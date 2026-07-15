@@ -78,6 +78,12 @@ export type DailyPlanHistoryImportResult = {
   error?: string;
 };
 
+export type DiagnosticsExportResult = {
+  canceled: boolean;
+  filePath?: string;
+  error?: string;
+};
+
 export type AppSettings = {
   selectedDurationMs: number;
   timerState: PersistedTimerState;
@@ -124,6 +130,7 @@ export type ElectronAPI = {
     plan: DailyPlanSettings,
   ) => Promise<DailyPlanHistoryExportResult>;
   importDailyPlanHistory: () => Promise<DailyPlanHistoryImportResult>;
+  exportDiagnostics: () => Promise<DiagnosticsExportResult>;
   notifyTimerFinished: () => void;
   onRemoteSettingsApplied: (callback: (settings: AppSettings) => void) => () => void;
 };

@@ -16,6 +16,7 @@ import {
   mergeDailyPlanDateRecords,
   type SyncDailyPlanDateStatus,
 } from "../src/sync/dailyPlanSync.js";
+import type { DiagnosticsLogger } from "./diagnostics.js";
 import type { SettingsStore } from "./settingsStore.js";
 
 type SyncTimerStatus = "Idle" | "Running" | "Paused" | "Finished";
@@ -189,6 +190,7 @@ export class SyncServer {
   constructor(
     private readonly settingsStore: SettingsStore,
     private readonly onRemoteSettingsApplied: (settings: AppSettings) => void,
+    private readonly diagnostics?: DiagnosticsLogger,
   ) {}
 
   private get metaPath(): string {
@@ -207,6 +209,9 @@ export class SyncServer {
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
         console.warn("Could not load sync metadata:", error);
+        this.diagnostics?.warn("sync.meta_load_failed", {
+          error: error instanceof Error ? error.message : String(error),
+        });
       }
     }
 
@@ -230,6 +235,7 @@ export class SyncServer {
       this.server?.listen(port, "0.0.0.0", () => {
         this.server?.off("error", reject);
         console.info(`Focus Timer sync server listening on port ${port}.`);
+        this.diagnostics?.info("sync.server_started", { port });
         resolve();
       });
     });
@@ -243,6 +249,20 @@ export class SyncServer {
     void this.persistMeta();
     this.server?.close();
     this.server = null;
+    this.diagnostics?.info("sync.server_stopped");
+  }
+
+  getDiagnostics(): Record<string, unknown> {
+    return {
+      running: this.server !== null,
+      version: this.meta.version,
+      dailyPlanDateRecords: Object.keys(this.meta.dailyPlanDates).length,
+      metaPath: this.metaPath,
+      timerModifiedAt: this.meta.timerModifiedAt,
+      dailyPlanModifiedAt: this.meta.dailyPlanModifiedAt,
+      focusPresetsModifiedAt: this.meta.focusPresetsModifiedAt,
+      appSettingsModifiedAt: this.meta.appSettingsModifiedAt,
+    };
   }
 
   markLocalSettingsPatch(
@@ -363,6 +383,9 @@ export class SyncServer {
 
       writeJson(response, 404, { error: "Not found." });
     } catch (error) {
+      this.diagnostics?.warn("sync.request_failed", {
+        error: error instanceof Error ? error.message : String(error),
+      });
       writeJson(response, 500, {
         error: error instanceof Error ? error.message : "Unknown sync error.",
       });

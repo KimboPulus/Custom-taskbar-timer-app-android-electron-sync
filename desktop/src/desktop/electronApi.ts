@@ -88,6 +88,7 @@ const browserFallback: ElectronAPI = {
   resolveAlarmUrl: async () => null,
   exportDailyPlanHistory: async () => ({ canceled: true }),
   importDailyPlanHistory: async () => ({ canceled: true }),
+  exportDiagnostics: async () => ({ canceled: true }),
   notifyTimerFinished: () => undefined,
   onRemoteSettingsApplied: () => () => undefined,
 };

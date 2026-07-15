@@ -56,6 +56,7 @@ export function SettingsPanel({
   const [saved, setSaved] = useState(false);
   const [previewing, setPreviewing] = useState(false);
   const [soundError, setSoundError] = useState("");
+  const [diagnosticsMessage, setDiagnosticsMessage] = useState("");
   const [recordingShortcut, setRecordingShortcut] = useState<
     keyof ShortcutLabels | null
   >(null);
@@ -101,6 +102,19 @@ export function SettingsPanel({
   const stopPreview = () => {
     stopAlarm();
     setPreviewing(false);
+  };
+
+  const exportDiagnostics = async () => {
+    setDiagnosticsMessage("");
+    const result = await electronApi.exportDiagnostics();
+    if (result.canceled) {
+      return;
+    }
+    setDiagnosticsMessage(
+      result.error
+        ? `Diagnostics export failed: ${result.error}`
+        : `Diagnostics exported to ${result.filePath}.`,
+    );
   };
 
   const selectSound = async (value: string) => {
@@ -384,6 +398,24 @@ export function SettingsPanel({
             />
             <span />
           </label>
+        </div>
+
+        <div className="setting-block">
+          <div className="setting-block__heading">
+            <div>
+              <label>Diagnostics</label>
+              <p>
+                Export local logs, sync metadata summary, and daily-plan
+                storage status for debugging.
+              </p>
+            </div>
+            <button type="button" onClick={() => void exportDiagnostics()}>
+              Export
+            </button>
+          </div>
+          {diagnosticsMessage && (
+            <p className="settings-message">{diagnosticsMessage}</p>
+          )}
         </div>
 
         <div className="setting-block">

@@ -46,7 +46,7 @@ npm run dev
 Build and test:
 
 ```powershell
-npm run build
+npm run verify
 ```
 
 Create a Windows installer:
@@ -73,12 +73,21 @@ GitHub release builds publish:
 ## Architecture
 
 - `electron/` owns app lifecycle, BrowserWindow behavior, global shortcuts,
-  notifications, and settings file access.
+  notifications, diagnostics, SQLite history mirroring, and settings access.
+- `src/domain/` contains pure daily-plan/domain persistence mapping code.
 - `src/timer/` contains pure timer transitions and the React timer store.
 - `src/components/` contains the full, compact, and settings interfaces.
 - `src/desktop/` defines the narrow API exposed by `preload.ts`.
 
 The renderer never receives the Electron module or Node.js APIs.
+
+Daily-plan history is mirrored into `daily-plan.sqlite3` under Electron
+`userData`. `settings.json` remains the compatibility layer for app settings.
+Settings include a diagnostics export that writes local logs plus storage and
+sync summaries to JSON.
+
+Release workflow runs `npm run verify` before packaging and smoke-checks
+generated installer artifacts before upload.
 
 ## Full, compact, and taskbar modes
 

@@ -22,6 +22,7 @@ import {
   resolveAlarmUrl,
 } from "./media.js";
 import { applyLaunchAtStartup } from "./loginItem.js";
+import type { DiagnosticsLogger } from "./diagnostics.js";
 import type { SettingsStore } from "./settingsStore.js";
 import type { ShortcutManager } from "./shortcuts.js";
 import type { SyncServer } from "./syncServer.js";
@@ -32,6 +33,7 @@ export function registerIpcHandlers(
   settingsStore: SettingsStore,
   shortcutManager: ShortcutManager,
   syncServer: SyncServer,
+  diagnostics: DiagnosticsLogger,
 ): void {
   ipcMain.handle("window:set-mode", (_event, mode: WindowMode) =>
     windowManager.setMode(mode),
@@ -77,6 +79,41 @@ export function registerIpcHandlers(
     syncServer.markTimerChanged();
   });
   ipcMain.handle("shortcuts:get-warnings", () => shortcutManager.getWarnings());
+  ipcMain.handle("diagnostics:export", async () => {
+    try {
+      const owner = windowManager.getWindow();
+      const options: SaveDialogOptions = {
+        title: "Export diagnostics",
+        defaultPath: "focus-timer-diagnostics.json",
+        filters: [
+          { name: "Focus Timer diagnostics", extensions: ["json"] },
+          { name: "All files", extensions: ["*"] },
+        ],
+      };
+      const result = owner
+        ? await dialog.showSaveDialog(owner, options)
+        : await dialog.showSaveDialog(options);
+
+      if (result.canceled || !result.filePath) {
+        return { canceled: true };
+      }
+
+      await diagnostics.exportBundle(result.filePath, settingsStore.get(), {
+        settingsStore: settingsStore.getDiagnostics(),
+        syncServer: syncServer.getDiagnostics(),
+        shortcuts: shortcutManager.getWarnings(),
+      });
+      return { canceled: false, filePath: result.filePath };
+    } catch (error) {
+      return {
+        canceled: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : "Could not export diagnostics.",
+      };
+    }
+  });
   ipcMain.handle("media:list-system-sounds", () => listSystemSounds());
   ipcMain.handle("media:choose-custom", () =>
     chooseCustomMedia(windowManager.getWindow()),

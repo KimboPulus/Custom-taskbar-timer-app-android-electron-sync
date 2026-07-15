@@ -50,6 +50,7 @@ const electronAPI: ElectronAPI = {
     ipcRenderer.invoke("daily-plan:export-history", plan),
   importDailyPlanHistory: () =>
     ipcRenderer.invoke("daily-plan:import-history"),
+  exportDiagnostics: () => ipcRenderer.invoke("diagnostics:export"),
   notifyTimerFinished: () => ipcRenderer.send("timer:finished"),
   onRemoteSettingsApplied: (callback) => {
     const listener = (

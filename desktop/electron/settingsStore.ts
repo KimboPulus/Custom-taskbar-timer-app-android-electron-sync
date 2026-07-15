@@ -8,10 +8,12 @@ import path from "node:path";
 import type {
   AlarmSound,
   AppSettings,
-  DailyPlanSettings,
   PersistedTimerState,
   WindowMode,
 } from "../src/desktop/desktopTypes.js";
+import { normalizeDailyPlanSettings } from "../src/domain/dailyPlanModel.js";
+import { DailyPlanDatabase } from "./dailyPlanDatabase.js";
+import type { DiagnosticsLogger } from "./diagnostics.js";
 
 const supportsWindowsTaskbarMode = process.platform === "win32";
 const supportsLaunchAtStartup = process.platform === "win32";
@@ -116,105 +118,6 @@ function normalizeWindowMode(
   return legacyCompactMode === true ? "compact" : "full";
 }
 
-function isDateKey(value: unknown): value is string {
-  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-    return false;
-  }
-
-  const [year, month, day] = value.split("-").map(Number);
-  const date = new Date(year, month - 1, day);
-  return (
-    date.getFullYear() === year &&
-    date.getMonth() === month - 1 &&
-    date.getDate() === day
-  );
-}
-
-function normalizeRemainingTimes(
-  values: Partial<DailyPlanSettings>["remainingTimes"],
-): DailyPlanSettings["remainingTimes"] {
-  if (!Array.isArray(values)) {
-    return [];
-  }
-
-  const byDate = new Map<string, number>();
-  for (const item of values) {
-    if (!item || typeof item !== "object" || !isDateKey(item.date)) {
-      continue;
-    }
-
-    const remainingMs = Number(item.remainingMs);
-    if (!Number.isFinite(remainingMs) || remainingMs <= 0) {
-      continue;
-    }
-
-    byDate.set(item.date, Math.round(remainingMs));
-  }
-
-  return [...byDate.entries()]
-    .map(([date, remainingMs]) => ({ date, remainingMs }))
-    .sort((left, right) => left.date.localeCompare(right.date));
-}
-
-function normalizeDailyPlan(value: unknown): DailyPlanSettings {
-  if (!value || typeof value !== "object") {
-    return structuredClone(defaultSettings.dailyPlan);
-  }
-
-  const plan = value as Partial<DailyPlanSettings>;
-  const startDate = isDateKey(plan.startDate) ? plan.startDate : null;
-  const completedDates = Array.isArray(plan.completedDates)
-    ? Array.from(
-        new Set(
-          plan.completedDates.filter(
-            (date): date is string => isDateKey(date),
-          ),
-        ),
-      ).sort()
-    : [];
-  const completedDateSet = new Set(completedDates);
-  const failedDates = Array.isArray(plan.failedDates)
-    ? Array.from(
-        new Set(
-          plan.failedDates.filter(
-            (date): date is string =>
-              isDateKey(date) && !completedDateSet.has(date),
-          ),
-        ),
-      ).sort()
-    : [];
-  const failedDateSet = new Set(failedDates);
-  const neutralDates = Array.isArray(plan.neutralDates)
-    ? Array.from(
-        new Set(
-          plan.neutralDates.filter(
-            (date): date is string =>
-              isDateKey(date) &&
-              !completedDateSet.has(date) &&
-              !failedDateSet.has(date),
-          ),
-        ),
-      ).sort()
-    : [];
-
-  return {
-    title:
-      typeof plan.title === "string" && plan.title.trim()
-        ? plan.title.trim().slice(0, 80)
-        : defaultSettings.dailyPlan.title,
-    targetMinutes:
-      Number.isFinite(plan.targetMinutes) &&
-      (plan.targetMinutes as number) > 0
-        ? Math.min(24 * 60, Math.round(plan.targetMinutes as number))
-        : defaultSettings.dailyPlan.targetMinutes,
-    startDate,
-    completedDates,
-    failedDates,
-    neutralDates,
-    remainingTimes: normalizeRemainingTimes(plan.remainingTimes),
-  };
-}
-
 function normalizeTimerState(
   value: unknown,
   fallbackDurationMs: number,
@@ -266,12 +169,25 @@ function normalizeTimerState(
 export class SettingsStore {
   private settings: AppSettings = structuredClone(defaultSettings);
   private pendingSave: NodeJS.Timeout | null = null;
+  private dailyPlanDatabase: DailyPlanDatabase | null = null;
+
+  constructor(private readonly diagnostics?: DiagnosticsLogger) {}
 
   private get filePath(): string {
     return path.join(app.getPath("userData"), "settings.json");
   }
 
+  private get dailyPlanDatabasePath(): string {
+    return path.join(app.getPath("userData"), "daily-plan.sqlite3");
+  }
+
   async load(): Promise<AppSettings> {
+    this.dailyPlanDatabase = await DailyPlanDatabase.open(
+      this.dailyPlanDatabasePath,
+      this.diagnostics,
+    );
+    let loadedSettingsFile = false;
+
     try {
       const raw = await fs.readFile(this.filePath, "utf8");
       const stored = JSON.parse(raw) as LegacySettings;
@@ -338,14 +254,33 @@ export class SettingsStore {
           ...defaultSettings.shortcutLabels,
           ...stored.shortcutLabels,
         },
-        dailyPlan: normalizeDailyPlan(stored.dailyPlan),
+        dailyPlan: normalizeDailyPlanSettings(
+          stored.dailyPlan,
+          defaultSettings.dailyPlan,
+        ),
       };
+      loadedSettingsFile = true;
+      this.diagnostics?.info("settings.loaded", { source: "json" });
     } catch (error) {
       const code = (error as NodeJS.ErrnoException).code;
       if (code !== "ENOENT") {
         console.warn("Could not load settings:", error);
+        this.diagnostics?.warn("settings.load_failed", {
+          error: error instanceof Error ? error.message : String(error),
+        });
       }
     }
+
+    if (!loadedSettingsFile) {
+      const databasePlan = this.dailyPlanDatabase?.readSnapshot(
+        defaultSettings.dailyPlan,
+      );
+      if (databasePlan) {
+        this.settings.dailyPlan = databasePlan;
+        this.diagnostics?.info("settings.daily_plan_restored_from_sqlite");
+      }
+    }
+    this.mirrorDailyPlanToDatabase();
 
     return this.get();
   }
@@ -390,13 +325,19 @@ export class SettingsStore {
       dailyPlan:
         patch.dailyPlan === undefined
           ? this.settings.dailyPlan
-          : normalizeDailyPlan(patch.dailyPlan),
+          : normalizeDailyPlanSettings(
+              patch.dailyPlan,
+              defaultSettings.dailyPlan,
+            ),
       windowMode,
       taskbarModeEnabled,
       launchAtStartup,
     };
 
     await this.persist();
+    if (patch.dailyPlan !== undefined) {
+      this.mirrorDailyPlanToDatabase();
+    }
     return this.get();
   }
 
@@ -416,6 +357,25 @@ export class SettingsStore {
 
     mkdirSync(path.dirname(this.filePath), { recursive: true });
     writeFileSync(this.filePath, JSON.stringify(this.settings, null, 2), "utf8");
+    this.mirrorDailyPlanToDatabase();
+  }
+
+  getDiagnostics(): Record<string, unknown> {
+    return {
+      settingsPath: this.filePath,
+      dailyPlanDatabase:
+        this.dailyPlanDatabase?.getDiagnostics() ?? {
+          available: false,
+          filePath: this.dailyPlanDatabasePath,
+          dayRows: 0,
+          migrations: [],
+        },
+    };
+  }
+
+  close(): void {
+    this.dailyPlanDatabase?.close();
+    this.dailyPlanDatabase = null;
   }
 
   private schedulePersist(): void {
@@ -441,5 +401,9 @@ export class SettingsStore {
       JSON.stringify(this.settings, null, 2),
       "utf8",
     );
+  }
+
+  private mirrorDailyPlanToDatabase(): void {
+    this.dailyPlanDatabase?.writeSnapshot(this.settings.dailyPlan);
   }
 }

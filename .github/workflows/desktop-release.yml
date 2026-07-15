@@ -60,9 +60,17 @@ jobs:
         working-directory: desktop
         run: npm ci
 
+      - name: Verify desktop checks
+        working-directory: desktop
+        run: npm run verify
+
       - name: Build installer packages
         working-directory: desktop
         run: ${{ matrix.command }}
+
+      - name: Smoke release artifacts
+        working-directory: desktop
+        run: npm run smoke:release
 
       - name: Upload installer artifacts
         uses: actions/upload-artifact@v4

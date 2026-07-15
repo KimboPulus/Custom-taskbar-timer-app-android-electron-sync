@@ -11,5 +11,11 @@
     "types": ["node"],
     "sourceMap": true
   },
-  "include": ["electron/**/*", "src/desktop/desktopTypes.ts", "src/desktop/windowMode.ts"]
+  "include": [
+    "electron/**/*",
+    "src/desktop/desktopTypes.ts",
+    "src/desktop/windowMode.ts",
+    "src/domain/**/*"
+  ],
+  "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx"]
 }
