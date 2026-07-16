@@ -3,6 +3,18 @@ type ShortcutKeyEvent = Pick<
   "altKey" | "code" | "ctrlKey" | "key" | "metaKey" | "shiftKey"
 >;
 
+export type ShortcutModifierState = Pick<
+  ShortcutKeyEvent,
+  "altKey" | "ctrlKey" | "metaKey" | "shiftKey"
+>;
+
+export const emptyShortcutModifierState: ShortcutModifierState = {
+  altKey: false,
+  ctrlKey: false,
+  metaKey: false,
+  shiftKey: false,
+};
+
 const modifierKeys = new Set(["Alt", "Control", "Meta", "Shift"]);
 const namedKeys: Record<string, string> = {
   " ": "Space",
@@ -31,8 +43,41 @@ function acceleratorKey(event: ShortcutKeyEvent): string | null {
   return namedKeys[event.key] ?? null;
 }
 
+function modifierFlag(event: ShortcutKeyEvent): keyof ShortcutModifierState | null {
+  if (event.key === "Alt" || event.code.startsWith("Alt")) {
+    return "altKey";
+  }
+  if (event.key === "Control" || event.code.startsWith("Control")) {
+    return "ctrlKey";
+  }
+  if (event.key === "Meta" || event.code.startsWith("Meta")) {
+    return "metaKey";
+  }
+  if (event.key === "Shift" || event.code.startsWith("Shift")) {
+    return "shiftKey";
+  }
+  return null;
+}
+
+export function shortcutModifierStateFromKeyboardEvent(
+  current: ShortcutModifierState,
+  event: ShortcutKeyEvent,
+  pressed: boolean,
+): ShortcutModifierState {
+  const flag = modifierFlag(event);
+  if (!flag) {
+    return current;
+  }
+
+  return {
+    ...current,
+    [flag]: pressed,
+  };
+}
+
 export function shortcutFromKeyboardEvent(
   event: ShortcutKeyEvent,
+  heldModifiers: ShortcutModifierState = emptyShortcutModifierState,
 ): string | null {
   const key = acceleratorKey(event);
   if (!key) {
@@ -40,10 +85,10 @@ export function shortcutFromKeyboardEvent(
   }
 
   const modifiers = [
-    event.ctrlKey ? "Control" : null,
-    event.altKey ? "Alt" : null,
-    event.shiftKey ? "Shift" : null,
-    event.metaKey ? "Super" : null,
+    event.ctrlKey || heldModifiers.ctrlKey ? "Control" : null,
+    event.altKey || heldModifiers.altKey ? "Alt" : null,
+    event.shiftKey || heldModifiers.shiftKey ? "Shift" : null,
+    event.metaKey || heldModifiers.metaKey ? "Super" : null,
   ].filter((value): value is string => value !== null);
 
   if (modifiers.length === 0 && !/^F\d+$/.test(key)) {

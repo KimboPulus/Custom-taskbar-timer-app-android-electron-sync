@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { playAlarm, stopAlarm } from "../desktop/alarmPlayer";
 import { electronApi } from "../desktop/electronApi";
 import type {
@@ -8,7 +8,11 @@ import type {
   SystemSoundOption,
   ThemePreference,
 } from "../desktop/desktopTypes";
-import { shortcutFromKeyboardEvent } from "./shortcutRecorder";
+import {
+  emptyShortcutModifierState,
+  shortcutFromKeyboardEvent,
+  shortcutModifierStateFromKeyboardEvent,
+} from "./shortcutRecorder";
 
 type SettingsPanelProps = {
   settings: AppSettings;
@@ -60,6 +64,7 @@ export function SettingsPanel({
   const [recordingShortcut, setRecordingShortcut] = useState<
     keyof ShortcutLabels | null
   >(null);
+  const shortcutModifiersRef = useRef(emptyShortcutModifierState);
 
   useEffect(() => setShortcuts(settings.shortcutLabels), [settings.shortcutLabels]);
 
@@ -440,11 +445,23 @@ export function SettingsPanel({
                   className={
                     recordingShortcut === field.key ? "is-recording" : undefined
                   }
-                  onFocus={() => setRecordingShortcut(field.key)}
-                  onBlur={() => setRecordingShortcut(null)}
+                  onFocus={() => {
+                    setRecordingShortcut(field.key);
+                    shortcutModifiersRef.current = emptyShortcutModifierState;
+                  }}
+                  onBlur={() => {
+                    setRecordingShortcut(null);
+                    shortcutModifiersRef.current = emptyShortcutModifierState;
+                  }}
                   onKeyDown={(event) => {
                     event.preventDefault();
                     event.stopPropagation();
+                    const nextModifiers = shortcutModifierStateFromKeyboardEvent(
+                      shortcutModifiersRef.current,
+                      event.nativeEvent,
+                      true,
+                    );
+                    shortcutModifiersRef.current = nextModifiers;
                     if (event.key === "Backspace" || event.key === "Delete") {
                       setShortcuts((current) => ({
                         ...current,
@@ -452,7 +469,10 @@ export function SettingsPanel({
                       }));
                       return;
                     }
-                    const shortcut = shortcutFromKeyboardEvent(event.nativeEvent);
+                    const shortcut = shortcutFromKeyboardEvent(
+                      event.nativeEvent,
+                      nextModifiers,
+                    );
                     if (shortcut) {
                       setShortcuts((current) => ({
                         ...current,
@@ -460,6 +480,14 @@ export function SettingsPanel({
                       }));
                       event.currentTarget.blur();
                     }
+                  }}
+                  onKeyUp={(event) => {
+                    shortcutModifiersRef.current =
+                      shortcutModifierStateFromKeyboardEvent(
+                        shortcutModifiersRef.current,
+                        event.nativeEvent,
+                        false,
+                      );
                   }}
                 />
               </label>
