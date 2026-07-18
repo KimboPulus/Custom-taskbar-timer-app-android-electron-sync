@@ -48,6 +48,9 @@ mobile/    React Native + TypeScript Android companion app
 docs/      README screenshots
 ```
 
+See [project history](docs/project-history.md) for major design changes and
+[release process](docs/release-process.md) for validation and packaging details.
+
 ## Desktop Development
 
 ```powershell
@@ -61,6 +64,13 @@ Build and package the Windows installer:
 ```powershell
 cd desktop
 npm run package:win
+```
+
+Run desktop checks without packaging:
+
+```powershell
+cd desktop
+npm run verify
 ```
 
 Build Linux packages on Linux:
@@ -81,12 +91,17 @@ Desktop installers are published from GitHub Releases:
 - Debian/Ubuntu Linux: download the `.deb` package.
 - Other common Linux distros: download the `.AppImage`, run `chmod +x <file>.AppImage`, then launch it.
 
-To publish a new desktop release, push a tag that starts with `desktop-v`:
+To publish a new desktop release, bump `desktop/package.json`, then push a
+matching tag that starts with `desktop-v`:
 
 ```powershell
-git tag desktop-v1.6.9
-git push origin desktop-v1.6.9
+$version = (Get-Content desktop/package.json | ConvertFrom-Json).version
+git tag "desktop-v$version"
+git push origin "desktop-v$version"
 ```
+
+CI verifies, packages, and smoke-tests each platform artifact before publishing
+the GitHub Release. See [release process](docs/release-process.md).
 
 ## Android Development
 
@@ -129,7 +144,9 @@ The desktop app hosts the local sync API. The Android app pushes its current sta
 
 ## Notes
 
-This is a solo-dev local productivity project. It is designed for personal use on a trusted local network.
+This is a solo-dev local productivity project. It is designed for personal use
+on a trusted local network. Sync uses plain HTTP and has no device pairing or
+authentication. Do not expose port `5278` to the internet or an untrusted LAN.
 
 For stronger security, the next step would be adding a pairing token so only approved phones can sync with the desktop app.
 

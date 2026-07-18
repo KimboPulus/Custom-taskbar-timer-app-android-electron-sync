@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 const componentSource = readFileSync(
   new URL("./DailyPlanPanel.tsx", import.meta.url),
   "utf8",
-);
+).replaceAll("\r\n", "\n");
 const cssSource = readFileSync(
   new URL("../styles/dailyPlan.css", import.meta.url),
   "utf8",
