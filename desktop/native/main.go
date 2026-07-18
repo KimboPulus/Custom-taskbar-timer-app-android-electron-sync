@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 	"unsafe"
@@ -17,6 +18,8 @@ const (
 	vkRightAlt    = 0xA5
 	keyDownMask   = 0x8000
 )
+
+type virtualKeySet []uintptr
 
 var (
 	user32             = syscall.NewLazyDLL("user32.dll")
@@ -55,6 +58,12 @@ func run(args []string) error {
 			return errors.New("monitor-right-alt does not accept arguments")
 		}
 		return monitorRightAlt()
+	}
+	if args[1] == "wait-shortcut-release" {
+		if len(args) != 3 {
+			return errors.New("wait-shortcut-release expects an accelerator argument")
+		}
+		return waitShortcutRelease(args[2])
 	}
 
 	if len(args) < 3 {
@@ -97,6 +106,88 @@ func monitorRightAlt() error {
 	}
 }
 
+func waitShortcutRelease(accelerator string) error {
+	keys, err := releaseKeysForAccelerator(accelerator)
+	if err != nil {
+		return err
+	}
+
+	for anyKeyDown(keys) {
+		time.Sleep(10 * time.Millisecond)
+	}
+	return nil
+}
+
+func releaseKeysForAccelerator(accelerator string) (virtualKeySet, error) {
+	tokens := strings.Split(accelerator, "+")
+	for index := len(tokens) - 1; index >= 0; index-- {
+		token := strings.TrimSpace(tokens[index])
+		if token == "" || isAcceleratorModifier(token) {
+			continue
+		}
+		keys, ok := virtualKeysForAcceleratorToken(token)
+		if !ok {
+			return nil, fmt.Errorf("unsupported shortcut key: %s", token)
+		}
+		return keys, nil
+	}
+	return nil, errors.New("shortcut accelerator has no release key")
+}
+
+func isAcceleratorModifier(token string) bool {
+	switch strings.ToLower(strings.TrimSpace(token)) {
+	case "alt", "control", "ctrl", "shift", "super", "meta", "command", "cmd", "commandorcontrol", "cmdorctrl":
+		return true
+	default:
+		return false
+	}
+}
+
+func virtualKeysForAcceleratorToken(token string) (virtualKeySet, bool) {
+	normalized := strings.ToLower(strings.TrimSpace(token))
+	switch normalized {
+	case "space":
+		return virtualKeySet{0x20}, true
+	case "up":
+		return virtualKeySet{0x26}, true
+	case "down":
+		return virtualKeySet{0x28}, true
+	case "left":
+		return virtualKeySet{0x25}, true
+	case "right":
+		return virtualKeySet{0x27}, true
+	case "enter", "return":
+		return virtualKeySet{0x0D}, true
+	case "escape", "esc":
+		return virtualKeySet{0x1B}, true
+	case "tab":
+		return virtualKeySet{0x09}, true
+	case "backspace":
+		return virtualKeySet{0x08}, true
+	case "delete", "del":
+		return virtualKeySet{0x2E}, true
+	}
+
+	if len(normalized) == 1 {
+		key := normalized[0]
+		if key >= 'a' && key <= 'z' {
+			return virtualKeySet{uintptr(key - 'a' + 'A')}, true
+		}
+		if key >= '0' && key <= '9' {
+			return virtualKeySet{uintptr(key)}, true
+		}
+	}
+
+	if strings.HasPrefix(normalized, "f") {
+		number, err := strconv.Atoi(normalized[1:])
+		if err == nil && number >= 1 && number <= 24 {
+			return virtualKeySet{uintptr(0x70 + number - 1)}, true
+		}
+	}
+
+	return nil, false
+}
+
 func writeRightAltState(output *bufio.Writer, down bool) error {
 	state := "up"
 	if down {
@@ -109,7 +200,20 @@ func writeRightAltState(output *bufio.Writer, down bool) error {
 }
 
 func rightAltDown() bool {
-	state, _, _ := getAsyncKeyState.Call(vkRightAlt)
+	return keyDown(vkRightAlt)
+}
+
+func anyKeyDown(keys virtualKeySet) bool {
+	for _, key := range keys {
+		if keyDown(key) {
+			return true
+		}
+	}
+	return false
+}
+
+func keyDown(key uintptr) bool {
+	state, _, _ := getAsyncKeyState.Call(key)
 	return state&keyDownMask != 0
 }
 
