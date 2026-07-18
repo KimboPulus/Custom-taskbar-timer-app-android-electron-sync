@@ -3,6 +3,8 @@
 Desktop releases use tags named `desktop-v<package-version>`. Workflow
 `.github/workflows/desktop-release.yml` builds Windows and Linux packages in a
 matrix, uploads intermediate artifacts, then creates one GitHub Release.
+Pull requests run the desktop verification suite on Windows and Ubuntu before
+release packaging is considered.
 
 ## Before tagging
 

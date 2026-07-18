@@ -1,0 +1,34 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  desktop-verify:
+    name: Desktop verify (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: desktop/package-lock.json
+      - if: runner.os == 'Windows'
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.26.4"
+          cache: false
+      - working-directory: desktop
+        run: npm ci
+      - working-directory: desktop
+        run: npm run verify
