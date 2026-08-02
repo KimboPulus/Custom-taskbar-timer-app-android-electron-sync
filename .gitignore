@@ -29,3 +29,6 @@ mobile/phone-screenshot.png
 Thumbs.db
 .idea/
 .vscode/
+
+# Private change
+/private-learning/
