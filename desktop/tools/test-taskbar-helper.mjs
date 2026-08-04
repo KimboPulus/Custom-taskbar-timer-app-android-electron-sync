@@ -72,4 +72,4 @@ for (const testCase of cases) {
   }
 }
 
-console.log("C# taskbar helper tests passed.");
+console.log("C++ taskbar helper tests passed.");
