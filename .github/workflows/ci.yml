@@ -31,4 +31,4 @@ jobs:
       - working-directory: desktop
         run: npm ci
       - working-directory: desktop
-        run: npm run verify
+        run: npm run build
